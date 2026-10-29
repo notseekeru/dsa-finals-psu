@@ -1,0 +1,32 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": ["config:recommended", ":dependencyDashboard", ":semanticCommits", "group:monorepos", "group:recommended", "schedule:weekly"],
+    "lockFileMaintenance": {
+        "enabled": true
+    },
+    "labels": ["dependencies", "renovate"],
+    "prConcurrentLimit": 5,
+    "packageRules": [
+        {
+            "matchCategories": ["docker"],
+            "pinDigests": true,
+            "major": {
+                "enabled": true
+            }
+        },
+        {
+            "matchManagers": ["github-actions"],
+            "groupName": "GitHub Actions dependencies",
+            "separateMajorMinor": false
+        },
+        {
+            "matchManagers": ["npm"],
+            "groupName": "npm dependencies"
+        },
+        {
+            "matchManagers": ["dockerfile"],
+            "groupName": "Docker base images",
+            "separateMajorMinor": true
+        }
+    ]
+}

@@ -1,0 +1,51 @@
+services:
+  frontend:
+    build: ./frontend
+    container_name: dsa-finals-psu_frontend
+    depends_on:
+      - backend
+    networks:
+      - app
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: dsa-finals-psu_backend
+    environment:
+      PORT: 4100
+      DATABASE_URL: postgres://${POSTGRES_USER:-dsa}:${POSTGRES_PASSWORD:-dsa}@postgres:5432/${POSTGRES_DB:-dsa}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app
+      - db
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:18-alpine@sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5
+    container_name: dsa-finals-psu_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dsa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dsa}
+      POSTGRES_DB: ${POSTGRES_DB:-dsa}
+    # PG18+ stores data in a versioned subdirectory: mount the parent, not a data dir.
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dsa} -d ${POSTGRES_DB:-dsa}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - db
+    restart: unless-stopped
+
+networks:
+  app:
+  db:
+    internal: true
+
+volumes:
+  postgres_data:

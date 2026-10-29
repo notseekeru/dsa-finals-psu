@@ -1,0 +1,14 @@
+name: CD
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Not configured
+        run: echo "CD is deferred. See README, Next."
