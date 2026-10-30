@@ -33,7 +33,9 @@ services:
     image: postgres:18-alpine@sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5
     container_name: dsa-finals-psu_psql_dev
     profiles: ["tools"]
-    entrypoint: ["psql", "${DATABASE_URL:?DATABASE_URL is required}"]
+    env_file:
+      - ./backend/.env
+    entrypoint: ["sh", "-c", "psql \"$$DATABASE_URL\""]
     networks:
       - app
       - db

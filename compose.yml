@@ -11,9 +11,10 @@ services:
   backend:
     build: ./backend
     container_name: dsa-finals-psu_backend
+    env_file:
+      - ./backend/.env
     environment:
       PORT: 4100
-      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
     networks:
       - app
       - db

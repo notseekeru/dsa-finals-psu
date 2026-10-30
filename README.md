@@ -35,8 +35,10 @@ Backend, in `backend/`:
 
 ```sh
 npm ci
-DATABASE_URL=<neon dev branch url> npm run dev
+npm run dev
 ```
+
+`backend/.env` holds `DATABASE_URL` and `.envrc` exports it into the shell. Without direnv, pass it inline: `DATABASE_URL=... npm run dev`.
 
 Frontend, in `frontend/`:
 
@@ -45,17 +47,18 @@ npm ci
 npm run dev
 ```
 
-`flake.nix` supplies Node 24 and `playwright-mcp` to `nix develop` and direnv, and `.envrc` exports `.env` into that shell.
+`flake.nix` supplies Node 24 and `playwright-mcp` to `nix develop` and direnv, and `.envrc` exports `.env` and `backend/.env` into that shell.
 
 ## Docker and Makefile
 
 ```sh
 cp .env.example .env
+cp backend/.env.example backend/.env
 make build
 make up
 ```
 
-`make up` refuses to start until `DATABASE_URL` in `.env` points at the dev branch.
+`make up` refuses to start until `DATABASE_URL` in `backend/.env` points at the dev branch.
 
 ## Deploy
 
