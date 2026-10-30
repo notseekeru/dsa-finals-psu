@@ -82,7 +82,7 @@ scripts/     port-claimer.sh
 | Neon Postgres, local container behind a profile | No local Postgres to run or version. Dev and prod are Neon branches, so a clone only needs a connection string. |
 | No tables | The schema follows the app's data model, which is not defined. The auth tables are planned in Next. |
 | No observability | No traffic or SLO to measure. The LGTM stack in diagram_website/lgtm attaches when there is. |
-| Compose and CI now, CD stub | No cluster or registry target exists. `cd-pipeline.yml` is `workflow_dispatch` only. |
+| Vercel deploys, no CD workflow | Vercel builds and deploys on push from its git integration, so GitHub only runs CI. Compose stays for local and host runs. |
 | Ports 5373, 4100, 5433 | diagram_website already holds 5273, 3100, 5432. port-claimer frees these from other compose projects. |
 | Postgres volume at `/var/lib/postgresql` | PG18 stores data in a versioned subdirectory; mounting a narrower path loses data on upgrade. |
 
@@ -90,4 +90,3 @@ scripts/     port-claimer.sh
 
 - Auth: users and sessions tables. Login issues a random 32-byte token in an httpOnly cookie; the DB stores only its SHA-256 hash with an expiry. Documented only, no code.
 - Observability: copy `diagram_website/lgtm` plus the OTel instrumentation, add postgres-exporter, attach once there is traffic worth measuring.
-- CD: copy the diagram_website pipeline, GHCR images and a kustomize bump into the gitops repo. Needs a cluster and a hostname first.
