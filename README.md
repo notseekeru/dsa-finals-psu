@@ -1,5 +1,34 @@
 # dsa-finals-psu
 
+## Setup on Windows
+
+Double-click `scripts\setup.cmd`, or run it from a terminal:
+
+```bat
+scripts\setup.cmd
+```
+
+It installs Node LTS, Git, VS Code and GitHub Desktop through winget, refreshes PATH, and prints the versions with `SETUP OK`. Running it again is safe.
+
+If winget is missing, install these by hand and reopen the terminal:
+
+| Tool           | Source                        |
+| -------------- | ----------------------------- |
+| Node LTS       | https://nodejs.org            |
+| Git            | https://git-scm.com           |
+| VS Code        | https://code.visualstudio.com |
+| GitHub Desktop | https://desktop.github.com    |
+
+Frontend only, no database or backend:
+
+```bat
+cd frontend
+npm ci
+npm run dev
+```
+
+Then open http://localhost:5373.
+
 ## Host
 
 Backend, in `backend/`:
