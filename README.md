@@ -45,6 +45,8 @@ npm ci
 npm run dev
 ```
 
+`flake.nix` supplies Node 24 and `playwright-mcp` to `nix develop` and direnv, and `.envrc` exports `.env` into that shell.
+
 ## Docker and Makefile
 
 ```sh
@@ -52,6 +54,14 @@ cp .env.example .env
 make build
 make up
 ```
+
+`make up` refuses to start until `DATABASE_URL` in `.env` points at the dev branch.
+
+## Deploy
+
+Two Vercel projects build from this repo: `dsa-2c` from `frontend/` and `dsa-2c-api` from `backend/`. The site is https://dsa-2c.vercel.app, and `/api/*` reaches the API through the rewrite in `frontend/vercel.json`, so the browser only uses one origin. The API project holds `DATABASE_URL` for the production branch.
+
+Renaming a project does not move its `*.vercel.app` domain. Add the new domain to the project and update the rewrite in the same change.
 
 ## Commands
 
@@ -84,3 +94,4 @@ make up
 | node-pg-migrate                                 | TypeScript runner with up and down in one file, no extra service. The migrations directory is empty, so nothing applies yet.                                                        |
 | Neon Postgres, `production` and `development` branches, local container behind a profile | No local Postgres to run or version. Dev and prod are Neon branches, so a clone only needs a connection string.                                                                     |
 | Vercel deploys, no CD workflow                  | Vercel builds and deploys on push from its git integration, so GitHub only runs CI. Compose stays for local and host runs.                                                          |
+| Two Vercel projects, `/api` proxied             | Each service installs only its own dependencies, so no package is declared twice. One origin for the browser, no CORS to configure.                                                 |
