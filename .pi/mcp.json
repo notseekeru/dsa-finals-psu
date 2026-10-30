@@ -11,6 +11,9 @@
     },
     "neon": {
       "url": "https://mcp.neon.tech/mcp"
+    },
+    "vercel": {
+      "url": "https://mcp.vercel.com"
     }
   }
 }
