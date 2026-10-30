@@ -4,11 +4,11 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "tsx watch src/server.ts",
+        "dev": "tsx watch src/serve.ts",
         "build": "tsc -p tsconfig.json",
         "typecheck": "tsc --noEmit -p tsconfig.json",
         "lint": "biome check . --fix --unsafe",
-        "start": "node dist/server.js",
+        "start": "node dist/serve.js",
         "migrate": "node-pg-migrate",
         "migrate:up": "node-pg-migrate up",
         "migrate:down": "node-pg-migrate down",
@@ -16,13 +16,13 @@
     },
     "dependencies": {
         "@hono/node-server": "2.1.5",
+        "@types/node": "26.6.6",
         "hono": "4.13.14",
         "node-pg-migrate": "9.0.0",
         "pg": "8.23.1"
     },
     "devDependencies": {
         "@biomejs/biome": "2.6.4",
-        "@types/node": "26.6.6",
         "@types/pg": "8.23.1",
         "tsx": "4.23.15",
         "typescript": "7.0.2"

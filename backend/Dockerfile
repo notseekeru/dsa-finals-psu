@@ -43,4 +43,4 @@ COPY --from=prune /app .
 
 USER node
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/serve.js"]
