@@ -1,6 +1,6 @@
 {
     "$schema": "https://openapi.vercel.sh/vercel.json",
-    "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
+    "rewrites": [{ "source": "/api/:path*", "destination": "https://dsa-finals-psu-backend.vercel.app/:path*" }, { "source": "/((?!api/).*)", "destination": "/index.html" }],
     "headers": [
         {
             "source": "/(.*)",
