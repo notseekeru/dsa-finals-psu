@@ -13,16 +13,14 @@ services:
     container_name: dsa-finals-psu_backend
     environment:
       PORT: 4100
-      DATABASE_URL: postgres://${POSTGRES_USER:-dsa}:${POSTGRES_PASSWORD:-dsa}@postgres:5432/${POSTGRES_DB:-dsa}
-    depends_on:
-      postgres:
-        condition: service_healthy
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
     networks:
       - app
       - db
     restart: unless-stopped
 
   postgres:
+    profiles: ["local-db"]
     image: postgres:18-alpine@sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5
     container_name: dsa-finals-psu_postgres
     environment:
