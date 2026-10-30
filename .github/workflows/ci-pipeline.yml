@@ -59,26 +59,3 @@ jobs:
 
       - name: Audit (informational)
         run: npm audit --audit-level=moderate || true
-
-  images:
-    needs: checks
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        service: [frontend, backend]
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Build prod image
-        run: docker build --target prod -t dsa-finals-psu-${{ matrix.service }}:ci ./${{ matrix.service }}
-
-      - name: Scan image with Trivy
-        run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v ${{ github.workspace }}/${{ matrix.service }}/.trivyignore.yaml:/.trivyignore.yaml \
-            aquasec/trivy:0.74.0 image \
-            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
-            --ignorefile /.trivyignore.yaml \
-            dsa-finals-psu-${{ matrix.service }}:ci

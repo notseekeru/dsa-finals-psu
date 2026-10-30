@@ -76,10 +76,6 @@ Renaming a project does not move its `*.vercel.app` domain. Add the new domain t
 | `make shell` / `make psql`       | shell in the backend, psql into `DATABASE_URL`        |
 | `make migrate` / `make rollback` | node-pg-migrate up / down                             |
 | `make new-migration name=x`      | create a migration file                               |
-| `make prod-build`                | build prod images                                     |
-| `make prod-up`                   | free ports, start the prod overlay                    |
-| `make prod-down`                 | stop prod, delete its volume and local images         |
-| `make prod-scan`                 | build prod, scan both images at HIGH and CRITICAL     |
 | `make check-ports`               | free 5373/4100/5433 from other compose projects       |
 
 ## Decisions
@@ -90,8 +86,12 @@ Renaming a project does not move its `*.vercel.app` domain. Add the new domain t
 | Hono over Express                               | Web-standard handlers and a typed context. Express as alternative as the reference for auth and middleware once routes exist.                                                       |
 | Plain Vite 8 over Vite+                         | Vite+ bundles Vite, Vitest, Oxlint, Oxfmt and turbo behind a global installer and would replace Biome. Two services do not need that consolidation.                                 |
 | No Tailwind                                     | No UI design yet. Plain CSS for lessen complexity with separation of concerns .                                                                                                     |
-| No test runner                                  | Lowered-tier app: a test earns its place when the failure it catches costs more than the test. CI still gates lint, format, typecheck, build and the image scan, and reports audit. |
+| No test runner                                  | Lowered-tier app: a test earns its place when the failure it catches costs more than the test. CI still gates lint, format, typecheck and build, and reports audit.                   |
 | node-pg-migrate                                 | TypeScript runner with up and down in one file, no extra service. The migrations directory is empty, so nothing applies yet.                                                        |
 | Neon Postgres, `production` and `development` branches, local container behind a profile | No local Postgres to run or version. Dev and prod are Neon branches, so a clone only needs a connection string.                                                                     |
 | Vercel deploys, no CD workflow                  | Vercel builds and deploys on push from its git integration, so GitHub only runs CI. Compose stays for local and host runs.                                                          |
 | Two Vercel projects, `/api` proxied             | Each service installs only its own dependencies, so no package is declared twice. One origin for the browser, no CORS to configure.                                                 |
+| No prod Docker images                           | Vercel builds from source, so the images and their Trivy scan guarded nothing. Compose runs the dev targets only.                                                                   |
+| Hono entry at `backend/src/index.ts`            | Vercel's Hono preset only looks for `app`, `index` or `server` at the project root or under `src`.                                                                                 |
+| No `types` in the backend tsconfig              | Vercel compiles the function where `@types/node` is not installed, so pinning it fails the build with TS2688.                                                                      |
+| Security headers in `frontend/vercel.json`      | Vercel sent only HSTS. The nginx headers never reached the live site, so the app's headers are config.                                                                              |
