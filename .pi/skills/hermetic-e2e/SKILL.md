@@ -57,7 +57,7 @@ That is the whole surface. Add steps here when routes exist.
 
 ## Preconditions
 
-- Dev stack up: `make up`. `/` on 5373 and `/healthz` on 4100 must answer 200.
+- Dev stack up: `make up`. `/` on 5373 and `/api/healthz` on 4100 must answer 200.
 - No auth: nothing in this app gates a route.
 - `playwright-mcp` must resolve on PATH, which means pi running inside the flake shell
   (`nix develop`/direnv). When it does not, the server fails at session start and `pi mcp list` says so.
