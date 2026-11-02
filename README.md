@@ -102,14 +102,14 @@ flowchart TB
                 Headers["Headers (nosniff, referrer, frame, permissions)"]
             end
             subgraph WebRoute["Routing"]
-                Rewrite["Rewrite /api/:path* (strip prefix)"]
+                Rewrite["Rewrite /api/:path* (prefix kept)"]
                 Fallback["SPA fallback to /index.html"]
             end
         end
 
         subgraph Api["Project dsa-2c-api (root backend/)"]
             subgraph ApiRuntime["Function: Node 24"]
-                Hono["Hono 4 (GET /healthz)"]
+                Hono["Hono 4 (GET /api/healthz)"]
                 Pool["pg pool (DATABASE_URL)"]
             end
         end
@@ -118,12 +118,12 @@ flowchart TB
  subgraph Local["Local Development (docker compose, project dsa-finals-psu-dev)"]
         subgraph ComposeWeb["dsa-finals-psu_frontend_dev :5373"]
             DevVite["Vite dev server (HMR, polling)"]
-            DevProxy["Proxy /api (strip prefix, DEVELOPMENT_BACKEND_URL=http://backend:4100)"]
+            DevProxy["Proxy /api (prefix kept, DEVELOPMENT_BACKEND_URL=http://backend:4100)"]
         end
 
         subgraph ComposeApi["dsa-finals-psu_backend_dev :4100"]
             DevServe["tsx watch src/serve.ts (SIGTERM drains pool)"]
-            DevHono["Hono 4 (GET /healthz)"]
+            DevHono["Hono 4 (GET /api/healthz)"]
             DevPool["pg pool (backend/.env)"]
         end
 
@@ -195,12 +195,12 @@ flowchart TB
     FeDomain --> Fallback
     Fallback --> Spa
     Headers -.-> Spa
-    Rewrite -- "/api/healthz to /healthz" --> Hono
+    Rewrite -- "/api/healthz" --> Hono
     Hono --> Pool
     Pool -- "DATABASE_URL" --> NeonProd
 
     DevVite --> DevProxy
-    DevProxy -- "/api/healthz to /healthz" --> DevServe
+    DevProxy -- "/api/healthz" --> DevServe
     DevServe --> DevHono
     DevServe --> DevPool
     DevPool -- "DATABASE_URL" --> NeonDev
@@ -240,6 +240,7 @@ flowchart TB
 | Neon Postgres, `production` and `development` branches, local container behind a profile | No local Postgres to run or version. Dev and prod are Neon branches, so a clone only needs a connection string.                                                                     |
 | Vercel deploys, no CD workflow                  | Vercel builds and deploys on push from its git integration, so GitHub only runs CI. Compose stays for local and host runs.                                                          |
 | Two Vercel projects, `/api` proxied             | Each service installs only its own dependencies, so no package is declared twice. One origin for the browser, no CORS to configure.                                                 |
+| `/api` owned by the backend                     | The prefix is part of the route, so a path means the same thing in the code, in dev and in prod, and nothing rewrites it.                                                            |
 | No prod Docker images                           | Vercel builds from source, so the images and their Trivy scan guarded nothing. Compose runs the dev targets only.                                                                   |
 | Hono entry at `backend/src/index.ts`            | Vercel's Hono preset only looks for `app`, `index` or `server` at the project root or under `src`.                                                                                 |
 | No `types` in the backend tsconfig              | Vercel compiles the function where `@types/node` is not installed, so pinning it fails the build with TS2688.                                                                      |
