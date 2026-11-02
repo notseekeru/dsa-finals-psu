@@ -81,6 +81,152 @@ Renaming a project does not move its `*.vercel.app` domain. Add the new domain t
 | `make new-migration name=x`      | create a migration file                               |
 | `make check-ports`               | free 5373/4100/5433 from other compose projects       |
 
+## Architecture
+
+```mermaid
+---
+config:
+  layout: elk
+---
+flowchart TB
+ subgraph Edge["Public Internet & Edge"]
+        Browser["Browser"]
+        FeDomain["dsa-2c.vercel.app"]
+        ApiDomain["dsa-2c-api.vercel.app"]
+  end
+
+ subgraph Vercel["Vercel Platform"]
+        subgraph Web["Project dsa-2c (root frontend/)"]
+            subgraph WebBuild["Build: Vite 8 + React 19"]
+                Spa["SPA (react-router 7 + ErrorBoundary)"]
+                Headers["Headers (nosniff, referrer, frame, permissions)"]
+            end
+            subgraph WebRoute["Routing"]
+                Rewrite["Rewrite /api/:path* (strip prefix)"]
+                Fallback["SPA fallback to /index.html"]
+            end
+        end
+
+        subgraph Api["Project dsa-2c-api (root backend/)"]
+            subgraph ApiRuntime["Function: Node 24"]
+                Hono["Hono 4 (GET /healthz)"]
+                Pool["pg pool (DATABASE_URL)"]
+            end
+        end
+  end
+
+ subgraph Local["Local Development (docker compose, project dsa-finals-psu-dev)"]
+        subgraph ComposeWeb["dsa-finals-psu_frontend_dev :5373"]
+            DevVite["Vite dev server (HMR, polling)"]
+            DevProxy["Proxy /api (strip prefix, DEVELOPMENT_BACKEND_URL=http://backend:4100)"]
+        end
+
+        subgraph ComposeApi["dsa-finals-psu_backend_dev :4100"]
+            DevServe["tsx watch src/serve.ts (SIGTERM drains pool)"]
+            DevHono["Hono 4 (GET /healthz)"]
+            DevPool["pg pool (backend/.env)"]
+        end
+
+        subgraph ComposeTools["Profiles"]
+            Psql["dsa-finals-psu_psql_dev (profile tools, psql DATABASE_URL)"]
+            Pg["dsa-finals-psu_postgres (profile local-db, postgres:18-alpine :5433)"]
+        end
+
+        subgraph ComposeNet["Networks"]
+            NetApp["app (egress)"]
+            NetDb["db (internal)"]
+        end
+
+        subgraph ComposeVol["Volumes"]
+            VolPg["postgres_data"]
+            VolNm["anonymous node_modules"]
+        end
+  end
+
+ subgraph Data["Data (Neon)"]
+        NeonProd[("Neon Postgres (production branch)")]
+        NeonDev[("Neon Postgres (development branch)")]
+        Migrate["node-pg-migrate (backend/migrations)"]
+  end
+
+ subgraph Workflow["Makefile Workflow"]
+        MPorts["check-ports (port-claimer.sh, 5373 4100 5433)"]
+        MUp["make up"]
+        MBuild["make build / buildcache"]
+        MDown["make down / clean"]
+        MLogs["make logs / ps"]
+        MLint["make lint (biome --fix --unsafe)"]
+        MExec["make exec (lint, typecheck, audit, outdated, prune)"]
+        MShell["make shell"]
+        MPsql["make psql"]
+        MMigrate["make migrate / rollback / new-migration"]
+        MPorts --> MUp
+        MLint --> MExec
+  end
+
+ subgraph GitHub["GitHub Platform"]
+        subgraph CI["CI workflow (push and PR to main, paths frontend/** backend/**)"]
+            CiInstall["npm ci (Node 24, matrix frontend + backend)"]
+            CiLint["Biome --fix --unsafe"]
+            CiFormat["git diff --exit-code"]
+            CiTypes["tsc --noEmit"]
+            CiBuild["build"]
+            CiAudit["npm audit (informational)"]
+            CiInstall --> CiLint --> CiFormat --> CiTypes --> CiBuild --> CiAudit
+        end
+
+        subgraph Protection["Branch protection (main)"]
+            PrRule["pull request, 1 approval, admins enforced"]
+        end
+
+        subgraph Deploy["Vercel Git Integration"]
+            Trigger["push to main"]
+            VBuild["build per project (frontend/ and backend/)"]
+            VRelease["deploy dsa-2c and dsa-2c-api"]
+            Trigger --> VBuild --> VRelease
+        end
+
+        PrRule --> CI
+  end
+
+    Browser --> FeDomain
+    Browser -- "http://localhost:5373" --> DevVite
+    FeDomain --> Rewrite
+    FeDomain --> Fallback
+    Fallback --> Spa
+    Headers -.-> Spa
+    Rewrite -- "/api/healthz to /healthz" --> Hono
+    Hono --> Pool
+    Pool -- "DATABASE_URL" --> NeonProd
+
+    DevVite --> DevProxy
+    DevProxy -- "/api/healthz to /healthz" --> DevServe
+    DevServe --> DevHono
+    DevServe --> DevPool
+    DevPool -- "DATABASE_URL" --> NeonDev
+    DevPool -. "offline" .-> Pg
+    Psql -.-> NeonDev
+    Pg -.-> VolPg
+    ComposeApi -.-> NetDb
+    ComposeWeb -.-> NetApp
+
+    MUp --> Local
+    MBuild --> Local
+    MDown --> Local
+    MLogs --> Local
+    MExec --> Local
+    MShell --> Local
+    MPsql --> Psql
+    MMigrate --> Migrate
+    Migrate -- "make migrate" --> NeonDev
+    Migrate -- "make migrate" --> NeonProd
+
+    Trigger --> VBuild
+    VRelease --> FeDomain
+    VRelease --> ApiDomain
+    ApiDomain --> Hono
+```
+
 ## Decisions
 
 | Decision                                        | Why                                                                                                                                                                                 |
