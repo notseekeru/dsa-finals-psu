@@ -1,5 +1,22 @@
 # dsa-finals-psu
 
+Unsorted data in, sorted data out, with every compare and swap shown. The table is the build order: each row needs the rows above it.
+
+## Roadmap
+
+| #   | Features                | Side | Step                                             |
+| --- | ----------------------- | ---- | ------------------------------------------------ |
+| 1   | Database schema         | B    | users, sessions, runs, datasets                  |
+| 2   | Auth                    | B, F | login, register, logout                          |
+| 3   | Landing Page            | F    | a beautiful landing with demo                    |
+| 4   | Algorithm Functions     | B    | Various DSA concept applied (API Functions only) |
+| 5   | Main App                | B, F | Execute unsorted datasets to sorted              |
+| 6   | History page            | B, F | a person’s recorded runs                         |
+| 7   | Polish Landing and Main | F    | A polished version containing animations         |
+| 8   | Docs                    | -    | optional update docs                             |
+| 9   | Input limits            | B    | security - prevent malicious payloads            |
+| 10  | Rate limit              | B    | security - prevents abuse                        |
+
 ## Setup on Windows
 
 Double-click `scripts\setup.cmd`, or run it from a terminal:
@@ -229,19 +246,19 @@ flowchart TB
 
 ## Decisions
 
-| Decision                                        | Why                                                                                                                                                                                 |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Javascript/Typescript                           | Alot simpler to integrate and connect with languages intertwined, making the architecture and code alot easier to understand, develop, and learn.                                   |
-| Hono over Express                               | Web-standard handlers and a typed context. Express as alternative as the reference for auth and middleware once routes exist.                                                       |
-| Plain Vite 8 over Vite+                         | Vite+ bundles Vite, Vitest, Oxlint, Oxfmt and turbo behind a global installer and would replace Biome. Two services do not need that consolidation.                                 |
-| No Tailwind                                     | No UI design yet. Plain CSS for lessen complexity with separation of concerns .                                                                                                     |
-| No test runner                                  | Lowered-tier app: a test earns its place when the failure it catches costs more than the test. CI still gates lint, format, typecheck and build, and reports audit.                   |
-| node-pg-migrate                                 | TypeScript runner with up and down in one file, no extra service. The migrations directory is empty, so nothing applies yet.                                                        |
-| Neon Postgres, `production` and `development` branches, local container behind a profile | No local Postgres to run or version. Dev and prod are Neon branches, so a clone only needs a connection string.                                                                     |
-| Vercel deploys, no CD workflow                  | Vercel builds and deploys on push from its git integration, so GitHub only runs CI. Compose stays for local and host runs.                                                          |
-| Two Vercel projects, `/api` proxied             | Each service installs only its own dependencies, so no package is declared twice. One origin for the browser, no CORS to configure.                                                 |
-| `/api` owned by the backend                     | The prefix is part of the route, so a path means the same thing in the code, in dev and in prod, and nothing rewrites it.                                                            |
-| No prod Docker images                           | Vercel builds from source, so the images and their Trivy scan guarded nothing. Compose runs the dev targets only.                                                                   |
-| Hono entry at `backend/src/index.ts`            | Vercel's Hono preset only looks for `app`, `index` or `server` at the project root or under `src`.                                                                                 |
-| No `types` in the backend tsconfig              | Vercel compiles the function where `@types/node` is not installed, so pinning it fails the build with TS2688.                                                                      |
-| Security headers in `frontend/vercel.json`      | Vercel sent only HSTS. The nginx headers never reached the live site, so the app's headers are config.                                                                              |
+| Decision                                                                                 | Why                                                                                                                                                                 |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Javascript/Typescript                                                                    | Alot simpler to integrate and connect with languages intertwined, making the architecture and code alot easier to understand, develop, and learn.                   |
+| Hono over Express                                                                        | Web-standard handlers and a typed context. Express as alternative as the reference for auth and middleware once routes exist.                                       |
+| Plain Vite 8 over Vite+                                                                  | Vite+ bundles Vite, Vitest, Oxlint, Oxfmt and turbo behind a global installer and would replace Biome. Two services do not need that consolidation.                 |
+| No Tailwind                                                                              | No UI design yet. Plain CSS for lessen complexity with separation of concerns .                                                                                     |
+| No test runner                                                                           | Lowered-tier app: a test earns its place when the failure it catches costs more than the test. CI still gates lint, format, typecheck and build, and reports audit. |
+| node-pg-migrate                                                                          | TypeScript runner with up and down in one file, no extra service. The migrations directory is empty, so nothing applies yet.                                        |
+| Neon Postgres, `production` and `development` branches, local container behind a profile | No local Postgres to run or version. Dev and prod are Neon branches, so a clone only needs a connection string.                                                     |
+| Vercel deploys, no CD workflow                                                           | Vercel builds and deploys on push from its git integration, so GitHub only runs CI. Compose stays for local and host runs.                                          |
+| Two Vercel projects, `/api` proxied                                                      | Each service installs only its own dependencies, so no package is declared twice. One origin for the browser, no CORS to configure.                                 |
+| `/api` owned by the backend                                                              | The prefix is part of the route, so a path means the same thing in the code, in dev and in prod, and nothing rewrites it.                                           |
+| No prod Docker images                                                                    | Vercel builds from source, so the images and their Trivy scan guarded nothing. Compose runs the dev targets only.                                                   |
+| Hono entry at `backend/src/index.ts`                                                     | Vercel's Hono preset only looks for `app`, `index` or `server` at the project root or under `src`.                                                                  |
+| No `types` in the backend tsconfig                                                       | Vercel compiles the function where `@types/node` is not installed, so pinning it fails the build with TS2688.                                                       |
+| Security headers in `frontend/vercel.json`                                               | Vercel sent only HSTS. The nginx headers never reached the live site, so the app's headers are config.                                                              |
