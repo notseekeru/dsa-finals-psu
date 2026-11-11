@@ -47,7 +47,7 @@ const res = await tools.mcp__playwright__browser_evaluate({
 
 ## Routes
 
-Routes (`react-router-dom`): Home `/`, catch-all `*`.
+Routes (`src/shared/router.js`): Home `/`, catch-all `*`.
 
 1. `/`: wait for `main h1` and assert it reads `DSA Finals PSU`.
 2. Click **"404 route"** (an `<a>` to `/missing`) and assert `main h1` reads `Not found`.
