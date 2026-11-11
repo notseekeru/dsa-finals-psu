@@ -75,7 +75,7 @@ frontend/src/
   main.js                  route table, edit this to register a page
   shared/api.js            the only place that calls /api
   shared/router.js         link interception, 404 fallback, error frame
-  styles/base.css          reset and palette, no page rules
+  styles/base.css          reset and page frame, shared by every page
   features/home/           one folder per page
 ```
 
