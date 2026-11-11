@@ -1,6 +1,6 @@
 import { serve } from "@hono/node-server";
-import { pool } from "./db.js";
 import app from "./index.js";
+import { pool } from "./shared/db.js";
 
 const port = Number(process.env.PORT ?? 4100);
 

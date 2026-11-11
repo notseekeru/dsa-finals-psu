@@ -66,6 +66,21 @@ npm run dev
 
 `flake.nix` supplies Node 24 and `playwright-mcp` to `nix develop` and direnv, and `.envrc` exports `.env` and `backend/.env` into that shell.
 
+## Frontend layout
+
+`frontend/` is what a person sees and clicks. `backend/` owns algorithms, storage and limits.
+
+```
+frontend/src/
+  main.js                  route table, edit this to register a page
+  shared/api.js            the only place that calls /api
+  shared/router.js         link interception, 404 fallback, error frame
+  styles/base.css          reset and page frame, shared by every page
+  features/home/           one folder per page
+```
+
+To add a page, copy `features/home`, rename the folder, edit its `.html`, then point a path at it in `main.js`. A feature exports `mount(el)`, keeps its own `.css` beside the `.js`, and imports markup with `import html from "./page.html?raw"`. That file is a fragment, so opening it in a browser directly shows it unstyled, which is expected.
+
 ## Docker and Makefile
 
 ```sh
@@ -114,8 +129,8 @@ flowchart TB
 
  subgraph Vercel["Vercel Platform"]
         subgraph Web["Project dsa-2c (root frontend/)"]
-            subgraph WebBuild["Build: Vite 8 + React 19"]
-                Spa["SPA (react-router 7 + ErrorBoundary)"]
+            subgraph WebBuild["Build: Vite 8"]
+                Spa["SPA (src/shared/router.js)"]
                 Headers["Headers (nosniff, referrer, frame, permissions)"]
             end
             subgraph WebRoute["Routing"]
@@ -248,7 +263,7 @@ flowchart TB
 
 | Decision                                                                                 | Why                                                                                                                                                                 |
 | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Javascript/Typescript                                                                    | Alot simpler to integrate and connect with languages intertwined, making the architecture and code alot easier to understand, develop, and learn.                   |
+| TypeScript backend, Javascript frontend                                                  | Types pay where a mistake is quiet: SQL, storage, limits. On the frontend the mistake is on screen, and a type gate only stops the people who do not read types.    |
 | Hono over Express                                                                        | Web-standard handlers and a typed context. Express as alternative as the reference for auth and middleware once routes exist.                                       |
 | Plain Vite 8 over Vite+                                                                  | Vite+ bundles Vite, Vitest, Oxlint, Oxfmt and turbo behind a global installer and would replace Biome. Two services do not need that consolidation.                 |
 | No Tailwind                                                                              | No UI design yet. Plain CSS for lessen complexity with separation of concerns .                                                                                     |
