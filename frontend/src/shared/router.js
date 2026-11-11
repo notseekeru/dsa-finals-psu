@@ -26,6 +26,7 @@ export function start(target, table) {
         event.preventDefault();
         history.pushState(null, "", url);
         render();
+        window.scrollTo(0, 0);
     });
 
     window.addEventListener("popstate", render);
