@@ -58,7 +58,7 @@ a:focus-visible {
     gap: 25px;
 
     background: rgba(255, 255, 255, 0.96);
-    border-bottom: 1px solid var(--border);
+    border-bottom: var(--border-width) solid var(--border);
 
     position: sticky;
     top: 0;
@@ -131,7 +131,7 @@ a:focus-visible {
     padding: 12px 21px;
 
     background: var(--primary);
-    border: 1px solid var(--primary);
+    border: var(--border-width) solid var(--primary);
 
     color: var(--white);
     font-size: 10px;
@@ -168,7 +168,7 @@ a:focus-visible {
 
     background: none;
     border: 0;
-    border-bottom: 1px solid var(--accent-dark);
+    border-bottom: var(--border-width) solid var(--accent-dark);
 
     color: var(--primary);
     font-size: 10px;
@@ -222,7 +222,7 @@ h2 em {
     padding: 16px 25px;
 
     background: var(--primary);
-    border: 1px solid var(--primary);
+    border: var(--border-width) solid var(--primary);
 
     color: var(--white);
     font-size: 11px;
@@ -244,7 +244,7 @@ h2 em {
     padding-bottom: 7px;
 
     color: var(--primary);
-    border-bottom: 1px solid var(--accent-dark);
+    border-bottom: var(--border-width) solid var(--accent-dark);
 
     font-size: 10px;
     font-weight: 700;
@@ -330,8 +330,8 @@ h2 em {
     overflow: hidden;
 
     background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
 
     box-shadow: var(--shadow);
 
@@ -354,7 +354,7 @@ h2 em {
     justify-content: space-between;
     gap: 10px;
 
-    border-bottom: 1px solid var(--border);
+    border-bottom: var(--border-width) solid var(--border);
 }
 
 .preview-brand {
@@ -398,7 +398,7 @@ h2 em {
     padding: 25px 12px;
 
     background: var(--background);
-    border-right: 1px solid var(--border);
+    border-right: var(--border-width) solid var(--border);
 }
 
 .sidebar-heading {
@@ -479,7 +479,7 @@ h2 em {
     padding: 15px;
 
     background: var(--background);
-    border: 1px solid var(--border);
+    border: var(--border-width) solid var(--border);
 
     transition: background 0.3s ease;
 }
@@ -507,7 +507,7 @@ h2 em {
     padding: 17px;
 
     background: var(--background);
-    border: 1px solid var(--border);
+    border: var(--border-width) solid var(--border);
 }
 
 .chart-heading h4 {
@@ -526,7 +526,7 @@ h2 em {
     align-items: end;
     gap: 7px;
 
-    border-bottom: 1px solid var(--border);
+    border-bottom: var(--border-width) solid var(--border);
 }
 
 .chart-bars div {
@@ -534,7 +534,7 @@ h2 em {
 
     background: linear-gradient(to top, #4b0082, #6a0dad, #d8b4fe);
 
-    border-radius: 3px 3px 0 0;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 }
 
 .chart-labels {
@@ -559,7 +559,7 @@ h2 em {
     padding: 11px;
 
     background: var(--background);
-    border: 1px solid var(--border);
+    border: var(--border-width) solid var(--border);
 }
 
 .recent-icon {
@@ -587,7 +587,7 @@ h2 em {
 }
 
 .preview-footer {
-    border-top: 1px solid var(--border);
+    border-top: var(--border-width) solid var(--border);
     border-bottom: none;
 
     color: var(--muted);
@@ -683,7 +683,7 @@ h2 em {
     padding: 27px 22px;
 
     background: var(--white);
-    border: 1px solid var(--border);
+    border: var(--border-width) solid var(--border);
 
     overflow: hidden;
     transition: 0.3s ease;
@@ -814,7 +814,7 @@ h2 em {
     justify-content: center;
 
     background: var(--background);
-    border: 1px solid var(--border);
+    border: var(--border-width) solid var(--border);
 
     transition: 0.3s ease;
 }
@@ -948,7 +948,7 @@ footer .logo small {
     justify-content: space-between;
     gap: 15px;
 
-    border-top: 1px solid rgba(255, 255, 255, 0.16);
+    border-top: var(--border-width) solid rgba(255, 255, 255, 0.16);
 
     color: #d0c5dc;
     font-size: 8px;

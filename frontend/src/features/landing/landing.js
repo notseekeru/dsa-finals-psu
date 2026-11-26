@@ -2,8 +2,8 @@ import html from "./landing.html?raw";
 import "./style.css";
 import { readSession, signOut } from "../../shared/session.js";
 
-const TITLE = "DATA SPACE | Smart Record Management";
-const DESCRIPTION = "DATA SPACE, a business record management system that organizes, sorts and retrieves information.";
+const TITLE = "DataSpace | Smart Record Management";
+const DESCRIPTION = "DataSpace, a business record management system that organizes, sorts and retrieves information.";
 
 export function mount(el) {
     el.innerHTML = html;
