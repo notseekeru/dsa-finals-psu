@@ -1,14 +1,14 @@
-import { detectCsvCategory, mapCsvRowsToRecords, parseCsvText } from "./csv-importer.js";
+import { detectMapping, mapRows, parseCsv } from "./csv-importer.js";
 import { renderDashboard } from "./dashboard.js";
-import { addOption, deleteOption, loadDropdownOptions, renameOption, saveDropdownOptions } from "./dropdown-options.js";
+import { deleteOption, renameOption } from "./dropdown-options.js";
 import { escapeHtml } from "./escape.js";
-import { createRecordsClient, searchRecords, sortRecords } from "./records-api.js";
-import { recordsTableHtml, sortRequestFromEvent } from "./records-table.js";
+import { createRecordsClient } from "./records-api.js";
+import { CORE_COLUMNS, recordsTableHtml, sortRequestFromEvent, tableColumns } from "./records-table.js";
 import "./workspace.css";
 
-const MAX_CAPACITY = 100;
-const MAX_CSV_ROWS = 500;
 const SEARCH_DEBOUNCE_MS = 250;
+const MAPPING_FIELDS = ["name", "amount", "date", "category", "status", "recordId"];
+const MAX_PROBLEMS = 20;
 
 function pluralizeCategoryLabel(category) {
     const clean = String(category ?? "").trim();
@@ -29,6 +29,8 @@ export async function mountRecordsWorkspace(container) {
     const client = await createRecordsClient();
 
     const state = {
+        datasetId: null,
+        datasets: [],
         sortField: "name",
         sortDir: "asc",
         searchMode: "linear",
@@ -36,16 +38,15 @@ export async function mountRecordsWorkspace(container) {
         categoryFilter: "ALL",
         statusFilter: "ALL",
         activeNav: "home",
-        viewMode: "grid",
+        viewMode: "table",
         metrics: { comparisons: 0, shifts: 0 },
         matches: null,
         statusText: "Ready.",
-        dropdownOptions: loadDropdownOptions(),
+        dropdownOptions: { categories: [], statuses: [] },
         activeDropdownGroup: "categories",
         csvDraft: null,
         csvImporting: false,
     };
-
     let searchTimer;
     let searchToken = 0;
 
@@ -57,24 +58,19 @@ export async function mountRecordsWorkspace(container) {
         searchMode: q("#dsaSearchMode"),
         categoryFilter: q("#dsaCategoryFilter"),
         statusFilter: q("#dsaStatusFilter"),
-        sortField: q("#dsaSortField"),
         sortDir: q("#dsaSortDir"),
         runSortBtn: q("#dsaRunSortBtn"),
         resetFiltersBtn: q("#dsaResetFiltersBtn"),
         dropdownTarget: q("#dsaDropdownTarget"),
         dropdownExistingSelect: q("#dsaDropdownExistingSelect"),
         dropdownInput: q("#dsaDropdownInput"),
-        addOptionBtn: q("#dsaAddOptionBtn"),
         renameOptionBtn: q("#dsaRenameOptionBtn"),
         deleteOptionBtn: q("#dsaDeleteOptionBtn"),
         dropdownMsg: q("#dsaDropdownMsg"),
-        syncBadge: q("#dsaSyncBadge"),
         newRecordBtn: q("#dsaNewRecordBtn"),
         navList: q(".dsa-nav-list"),
         navButtons: [...container.querySelectorAll(".dsa-nav-item")],
-        capacityFill: q("#dsaCapacityFill"),
-        capacityText: q("#dsaCapacityText"),
-        complexityMeta: q("#dsaComplexityMeta"),
+        datasetList: q("#dsaDatasetList"),
         workspaceTitle: q("#dsaWorkspaceTitle"),
         listViewBtn: q("#dsaListViewBtn"),
         gridViewBtn: q("#dsaGridViewBtn"),
@@ -104,18 +100,109 @@ export async function mountRecordsWorkspace(container) {
         csvDropzone: q("#dsaCsvDropzone"),
         csvFileMeta: q("#dsaCsvFileMeta"),
         csvReviewBox: q("#dsaCsvReviewBox"),
-        csvCategorySelect: q("#dsaCsvCategorySelect"),
+        csvMapping: q("#dsaCsvMapping"),
         csvDetectedInfo: q("#dsaCsvDetectedInfo"),
+        csvReadyCount: q("#dsaCsvReadyCount"),
+        csvProblems: q("#dsaCsvProblems"),
+        csvProblemsCount: q("#dsaCsvProblemsCount"),
         csvPreviewTable: q("#dsaCsvPreviewTable"),
         clearCsvBtn: q("#dsaClearCsvBtn"),
         importCsvBtn: q("#dsaImportCsvBtn"),
     };
 
-    if (client.isConnected()) {
-        els.syncBadge.textContent = "API Connected";
+    const refreshDashboard = () =>
+        renderDashboard(els.dashboard, {
+            datasetId: state.datasetId,
+            onSelectDataset: (id) => selectDataset(id),
+            getStats: (id) => client.stats(id),
+        });
+
+    const selectedDataset = () => state.datasets.find((dataset) => dataset.id === state.datasetId) ?? null;
+
+    function datasetCreatedAt(value) {
+        const text = String(value ?? "");
+        return text.length >= 10 ? text.slice(0, 10) : text;
     }
 
-    const refreshDashboard = () => renderDashboard(els.dashboard);
+    function renderDatasetList() {
+        if (!els.datasetList) return;
+        const total = state.datasets.reduce((sum, dataset) => sum + Number(dataset.rowCount ?? 0), 0);
+        const rowsHtml = state.datasets
+            .map((dataset) => {
+                const rows = Number(dataset.rowCount ?? 0);
+                const activeClass = dataset.id === state.datasetId ? " is-active" : "";
+                return `<div class="dsa-file-row${activeClass}">
+                <button type="button" class="dsa-file-select" data-dataset-id="${escapeHtml(dataset.id)}">
+                    <span class="dsa-file-name">${escapeHtml(dataset.name)}</span>
+                    <span class="dsa-file-meta">${rows} row${rows === 1 ? "" : "s"} · ${escapeHtml(datasetCreatedAt(dataset.createdAt))}</span>
+                </button>
+                <button type="button" class="dsa-file-delete" data-dataset-delete="${escapeHtml(dataset.id)}" data-dataset-name="${escapeHtml(dataset.name)}" data-dataset-rows="${rows}" aria-label="Delete all records in ${escapeHtml(dataset.name)}">Delete all</button>
+            </div>`;
+            })
+            .join("");
+
+        els.datasetList.innerHTML = `<div class="dsa-file-row${state.datasetId === null ? " is-active" : ""}">
+            <button type="button" class="dsa-file-select" data-dataset-id="">
+                <span class="dsa-file-name">All records</span>
+                <span class="dsa-file-meta">${total} row${total === 1 ? "" : "s"}</span>
+            </button>
+        </div>
+        ${rowsHtml}`;
+    }
+
+    async function loadDatasets() {
+        try {
+            state.datasets = await client.listDatasets();
+        } catch (error) {
+            state.datasets = [];
+            state.statusText = error instanceof Error ? error.message : "Could not load files.";
+        }
+        if (state.datasetId !== null && !selectedDataset()) state.datasetId = null;
+        renderDatasetList();
+    }
+
+    async function applyDatasetScope() {
+        state.matches = null;
+        const knownColumns = tableColumns(selectedDataset()?.columns ?? []).map((column) => column.key);
+        if (!knownColumns.includes(state.sortField)) state.sortField = "name";
+        renderDatasetList();
+        await client.listRecords(state.datasetId);
+        await applySort();
+        await refreshDashboard();
+    }
+
+    async function selectDataset(id) {
+        if (state.datasetId === id) return;
+        state.datasetId = id;
+        try {
+            await applyDatasetScope();
+        } catch (error) {
+            state.statusText = error instanceof Error ? error.message : "Could not switch files.";
+            render();
+        }
+    }
+
+    async function deleteDatasetRecords(button) {
+        const id = button.dataset.datasetDelete;
+        const name = button.dataset.datasetName ?? "";
+        const rows = Number(button.dataset.datasetRows ?? 0);
+        if (!window.confirm(`Delete all ${rows} record(s) in "${name}"? This cannot be undone.`)) return;
+
+        try {
+            await client.deleteDataset(id);
+            if (state.datasetId === id) {
+                state.datasetId = null;
+                state.matches = null;
+            }
+            await loadDatasets();
+            await applySort();
+            await refreshDashboard();
+            state.statusText = `Deleted "${name}" and its ${rows} record(s).`;
+        } catch (error) {
+            state.statusText = error instanceof Error ? error.message : "Could not delete the file.";
+        }
+        render();
+    }
 
     function populateSelectOptions(selectEl, values, { includeAll = false, allLabel = "All", selectedValue = "" } = {}) {
         if (!selectEl) return;
@@ -173,17 +260,63 @@ export async function mountRecordsWorkspace(container) {
         });
     }
 
-    function renderCsvPreviewTable(headers, rows, selectedCategory) {
+    function renderCsvPreviewTable(headers, rows) {
         if (!els.csvPreviewTable) return;
         const previewRows = rows.slice(0, 5);
-        const thHtml = `<tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}<th>Category</th></tr>`;
-        const tdHtml = previewRows
-            .map((r) => {
-                const cells = headers.map((h) => `<td>${escapeHtml(r[h] ?? "")}</td>`).join("");
-                return `<tr>${cells}<td><strong>${escapeHtml(selectedCategory)}</strong></td></tr>`;
-            })
-            .join("");
+        const thHtml = `<tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>`;
+        const tdHtml = previewRows.map((row) => `<tr>${headers.map((_, index) => `<td>${escapeHtml(row[index] ?? "")}</td>`).join("")}</tr>`).join("");
         els.csvPreviewTable.innerHTML = `<caption class="sr-only">CSV import preview</caption><thead>${thHtml}</thead><tbody>${tdHtml}</tbody>`;
+    }
+
+    function renderCsvMapping() {
+        if (!els.csvMapping || !state.csvDraft) return;
+        const { headers, mapping } = state.csvDraft;
+
+        els.csvMapping.innerHTML = MAPPING_FIELDS.map((key) => {
+            const label = CORE_COLUMNS.find((column) => column.key === key)?.label ?? key;
+            const optionsHtml = [`<option value="">Not mapped</option>`].concat(headers.map((header) => `<option value="${escapeHtml(header)}"${header === mapping[key] ? " selected" : ""}>${escapeHtml(header)}</option>`)).join("");
+            return `<label class="dsa-field dsa-csv-map-field">
+                <span>${escapeHtml(label)}</span>
+                <select data-map-field="${key}">${optionsHtml}</select>
+            </label>`;
+        }).join("");
+    }
+
+    function syncImportButton() {
+        if (!els.importCsvBtn) return;
+        els.importCsvBtn.disabled = state.csvImporting || (state.csvDraft?.mapped?.records.length ?? 0) === 0;
+    }
+
+    function renderCsvProblems() {
+        if (!state.csvDraft) return;
+        const mapped = state.csvDraft.mapped;
+        const problems = [...state.csvDraft.parseProblems, ...(mapped?.problems ?? [])];
+        const ready = mapped?.records.length ?? 0;
+        const skipped = mapped?.skipped ?? 0;
+
+        if (els.csvReadyCount) {
+            els.csvReadyCount.textContent = `${ready} row${ready === 1 ? "" : "s"} ready to import${skipped > 0 ? `, ${skipped} duplicate row${skipped === 1 ? "" : "s"} skipped` : ""}.`;
+        }
+        if (els.csvProblemsCount) {
+            const shown = Math.min(problems.length, MAX_PROBLEMS);
+            els.csvProblemsCount.textContent = problems.length === 0 ? "No problems found." : `${problems.length} problem${problems.length === 1 ? "" : "s"} (${shown} shown).`;
+        }
+        if (els.csvProblems) {
+            els.csvProblems.innerHTML = problems
+                .slice(0, MAX_PROBLEMS)
+                .map((problem) => `<li><span class="dsa-csv-problem-row">${problem.row ? `Row ${escapeHtml(problem.row)}` : "File"}</span>${problem.column ? `<span class="dsa-csv-problem-col">${escapeHtml(problem.column)}</span>` : ""}<span>${escapeHtml(problem.reason)}</span></li>`)
+                .join("");
+        }
+        syncImportButton();
+    }
+
+    function recomputeCsvPreview() {
+        if (!state.csvDraft) return;
+        const { headers, rows, mapping } = state.csvDraft;
+        // AI HERE: one bulk call for the whole file; past a few thousand rows the main thread stalls during mapping, so chunk mapRows/importRecords by file size.
+        state.csvDraft.mapped = mapRows(headers, rows, mapping);
+        renderCsvPreviewTable(headers, rows);
+        renderCsvProblems();
     }
 
     function resetCsvImporter() {
@@ -191,12 +324,19 @@ export async function mountRecordsWorkspace(container) {
         if (els.csvFileInput) els.csvFileInput.value = "";
         if (els.csvFileMeta) els.csvFileMeta.textContent = "No CSV file selected yet.";
         if (els.csvReviewBox) els.csvReviewBox.hidden = true;
+        if (els.csvMapping) els.csvMapping.innerHTML = "";
+        if (els.csvProblems) els.csvProblems.innerHTML = "";
+        if (els.csvProblemsCount) els.csvProblemsCount.textContent = "";
+        if (els.csvReadyCount) els.csvReadyCount.textContent = "";
         if (els.csvPreviewTable) els.csvPreviewTable.innerHTML = "";
         if (els.csvDetectedInfo) els.csvDetectedInfo.textContent = "";
+        syncImportButton();
     }
 
     function handleCsvFileSelected(file) {
         if (!file) return;
+        resetCsvImporter();
+
         const isCsv = file.name.toLowerCase().endsWith(".csv") || file.type.includes("csv");
         if (!isCsv) {
             if (els.csvFileMeta) els.csvFileMeta.textContent = "Please select a valid .csv file.";
@@ -206,13 +346,13 @@ export async function mountRecordsWorkspace(container) {
         const reader = new FileReader();
         reader.onload = () => {
             const text = String(reader.result ?? "");
-            const { headers, recordsRaw, duplicateHeaders, error } = parseCsvText(text);
-            if (error) {
-                if (els.csvFileMeta) els.csvFileMeta.textContent = `${file.name}: ${error}`;
+            const { headers, rows, problems, fatal } = parseCsv(text);
+            if (fatal) {
+                if (els.csvFileMeta) els.csvFileMeta.textContent = `${file.name}: ${fatal.reason}`;
                 if (els.csvReviewBox) els.csvReviewBox.hidden = true;
                 return;
             }
-            if (headers.length === 0 || recordsRaw.length === 0) {
+            if (headers.length === 0 || rows.length === 0) {
                 if (els.csvFileMeta) {
                     els.csvFileMeta.textContent = `"${file.name}" has no importable data rows.`;
                 }
@@ -220,36 +360,41 @@ export async function mountRecordsWorkspace(container) {
                 return;
             }
 
-            const categories = state.dropdownOptions.categories;
-            const detection = detectCsvCategory(headers, recordsRaw, categories);
-
             state.csvDraft = {
                 fileName: file.name,
                 headers,
-                recordsRaw,
-                detectedCategory: detection.detectedCategory,
-                selectedCategory: detection.detectedCategory,
+                rows,
+                parseProblems: problems ?? [],
+                mapping: detectMapping(headers),
+                mapped: null,
             };
 
-            populateSelectOptions(els.csvCategorySelect, categories, {
-                selectedValue: detection.detectedCategory,
-            });
-
+            const matched = MAPPING_FIELDS.filter((key) => state.csvDraft.mapping[key]).length;
             if (els.csvFileMeta) {
-                els.csvFileMeta.textContent = `${file.name} (${recordsRaw.length} row${recordsRaw.length === 1 ? "" : "s"})${duplicateHeaders.length > 0 ? ` Ignored duplicate header(s): ${duplicateHeaders.join(", ")}.` : ""}`;
+                els.csvFileMeta.textContent = `${file.name} (${rows.length} row${rows.length === 1 ? "" : "s"})`;
             }
             if (els.csvDetectedInfo) {
-                els.csvDetectedInfo.textContent = `Auto-detected: "${detection.detectedCategory}". Change the dropdown below to override.`;
+                els.csvDetectedInfo.textContent = `Auto-detected ${matched} of ${MAPPING_FIELDS.length} columns. Change any mapping below.`;
             }
-            if (els.csvReviewBox) {
-                els.csvReviewBox.hidden = false;
-            }
-            renderCsvPreviewTable(headers, recordsRaw, detection.detectedCategory);
+            if (els.csvReviewBox) els.csvReviewBox.hidden = false;
+
+            renderCsvMapping();
+            recomputeCsvPreview();
         };
         reader.readAsText(file);
     }
 
+    function optionLists() {
+        const items = client.getItems();
+        const uniq = (key, fallback) => {
+            const values = [...new Set(items.map((item) => String(item[key] ?? "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+            return values.length > 0 ? values : [fallback];
+        };
+        return { categories: uniq("category", "General"), statuses: uniq("status", "Active") };
+    }
+
     function syncDropdownUIs(message = "") {
+        state.dropdownOptions = optionLists();
         const { categories, statuses } = state.dropdownOptions;
         const group = state.activeDropdownGroup;
         const currentGroupList = group === "categories" ? categories : statuses;
@@ -277,14 +422,6 @@ export async function mountRecordsWorkspace(container) {
             selectedValue: els.fieldStatus?.value,
         });
 
-        if (state.csvDraft) {
-            populateSelectOptions(els.csvCategorySelect, categories, {
-                selectedValue: state.csvDraft.selectedCategory,
-            });
-            state.csvDraft.selectedCategory = els.csvCategorySelect?.value || categories[0] || "";
-            renderCsvPreviewTable(state.csvDraft.headers, state.csvDraft.recordsRaw, state.csvDraft.selectedCategory);
-        }
-
         if (els.dropdownTarget) {
             els.dropdownTarget.value = group;
         }
@@ -301,12 +438,6 @@ export async function mountRecordsWorkspace(container) {
 
     async function applyDropdownMutation(nextList, deletedValue = "") {
         const group = state.activeDropdownGroup;
-        state.dropdownOptions = {
-            ...state.dropdownOptions,
-            [group]: nextList,
-        };
-        saveDropdownOptions(state.dropdownOptions);
-
         const fallbackVal = nextList[0] || "";
         const items = client.getItems();
 
@@ -338,7 +469,7 @@ export async function mountRecordsWorkspace(container) {
     }
 
     async function refreshSort() {
-        const sorted = await sortRecords(state.sortField, state.sortDir);
+        const sorted = await client.sortRecords(state.sortField, state.sortDir, state.datasetId);
         client.setItems(sorted.records);
         state.metrics = {
             comparisons: sorted.metrics.comparisons,
@@ -380,11 +511,12 @@ export async function mountRecordsWorkspace(container) {
 
         let result;
         try {
-            result = await searchRecords({
+            result = await client.searchRecords({
                 mode: state.searchMode,
                 q: query,
                 field: state.sortField,
                 direction: state.sortDir,
+                dataset: state.datasetId,
             });
         } catch (error) {
             if (token !== searchToken) return;
@@ -413,11 +545,6 @@ export async function mountRecordsWorkspace(container) {
     function render() {
         const all = client.getItems();
         const visible = visibleRecords();
-
-        const pct = Math.min(100, Math.round((all.length / MAX_CAPACITY) * 100));
-        els.capacityFill.style.width = `${pct}%`;
-        els.capacityText.textContent = `${all.length} / ${MAX_CAPACITY} records`;
-        els.complexityMeta.textContent = `Insertion Sort: ${state.metrics.comparisons} comparisons · ${state.metrics.shifts} shifts`;
 
         els.workspaceTitle.textContent = state.activeNav === "home" ? "DataSpace" : `DataSpace: ${state.activeNav}`;
         els.recordCountLabel.textContent = `${visible.length} ${visible.length === 1 ? "record" : "records"}`;
@@ -453,7 +580,12 @@ export async function mountRecordsWorkspace(container) {
         }
 
         if (state.viewMode === "table") {
-            els.recordsContainer.innerHTML = recordsTableHtml(visible, state.sortField, state.sortDir);
+            els.recordsContainer.innerHTML = recordsTableHtml(visible, {
+                columns: tableColumns(selectedDataset()?.columns ?? []),
+                sortField: state.sortField,
+                sortDir: state.sortDir,
+                notice: state.datasetId === null ? "Extra fields are shown once a file is selected." : "",
+            });
             return;
         }
 
@@ -563,14 +695,6 @@ export async function mountRecordsWorkspace(container) {
         render();
     });
 
-    els.sortField.addEventListener(
-        "change",
-        handleAction(async (e) => {
-            state.sortField = e.target.value;
-            await applySort();
-        }),
-    );
-
     els.sortDir.addEventListener(
         "change",
         handleAction(async (e) => {
@@ -594,7 +718,6 @@ export async function mountRecordsWorkspace(container) {
             els.searchMode.value = "linear";
             els.categoryFilter.value = "ALL";
             els.statusFilter.value = "ALL";
-            els.sortField.value = "name";
             els.sortDir.value = "asc";
             await applySort();
         }),
@@ -609,23 +732,6 @@ export async function mountRecordsWorkspace(container) {
     els.dropdownExistingSelect?.addEventListener("change", (e) => {
         if (els.dropdownInput) els.dropdownInput.value = e.target.value;
     });
-
-    els.addOptionBtn?.addEventListener(
-        "click",
-        handleAction(async () => {
-            const group = state.activeDropdownGroup;
-            const { list, error } = addOption(state.dropdownOptions[group], els.dropdownInput?.value);
-            if (error) {
-                syncDropdownUIs(error);
-                return;
-            }
-            const addedLabel = els.dropdownInput.value.trim();
-            els.dropdownInput.value = "";
-            await applyDropdownMutation(list);
-            syncDropdownUIs(`Added "${addedLabel}".`);
-            if (els.dropdownExistingSelect) els.dropdownExistingSelect.value = addedLabel;
-        }),
-    );
 
     els.renameOptionBtn?.addEventListener(
         "click",
@@ -657,9 +763,6 @@ export async function mountRecordsWorkspace(container) {
             if (group === "categories" && state.categoryFilter === oldVal) state.categoryFilter = newVal;
             if (group === "categories" && state.activeNav === oldVal) state.activeNav = "home";
             if (group === "statuses" && state.statusFilter === oldVal) state.statusFilter = newVal;
-
-            state.dropdownOptions = { ...state.dropdownOptions, [group]: renamedList };
-            saveDropdownOptions(state.dropdownOptions);
             if (els.dropdownInput) els.dropdownInput.value = "";
             syncDropdownUIs(`Renamed "${oldVal}" to "${newVal}".`);
             if (els.dropdownExistingSelect) els.dropdownExistingSelect.value = newVal;
@@ -721,10 +824,11 @@ export async function mountRecordsWorkspace(container) {
         if (file) handleCsvFileSelected(file);
     });
 
-    els.csvCategorySelect?.addEventListener("change", (e) => {
-        if (!state.csvDraft) return;
-        state.csvDraft.selectedCategory = e.target.value;
-        renderCsvPreviewTable(state.csvDraft.headers, state.csvDraft.recordsRaw, state.csvDraft.selectedCategory);
+    els.csvMapping?.addEventListener("change", (event) => {
+        const select = event.target.closest("[data-map-field]");
+        if (!select || !state.csvDraft) return;
+        state.csvDraft.mapping[select.dataset.mapField] = select.value || null;
+        recomputeCsvPreview();
     });
 
     els.clearCsvBtn?.addEventListener("click", () => {
@@ -734,30 +838,27 @@ export async function mountRecordsWorkspace(container) {
     els.importCsvBtn?.addEventListener(
         "click",
         handleAction(async () => {
-            if (state.csvImporting || !state.csvDraft || state.csvDraft.recordsRaw.length === 0) return;
-            const chosenCategory = els.csvCategorySelect?.value || state.csvDraft.selectedCategory || state.dropdownOptions.categories[0];
-
-            const draftRows = state.csvDraft.recordsRaw;
-            const rows = draftRows.slice(0, MAX_CSV_ROWS);
-            const dropped = draftRows.length - rows.length;
-            const { records, skippedDuplicates } = mapCsvRowsToRecords(rows, chosenCategory, state.dropdownOptions.statuses, client.getItems().length);
+            if (state.csvImporting || !state.csvDraft?.mapped || state.csvDraft.mapped.records.length === 0) return;
+            const draft = state.csvDraft;
 
             state.csvImporting = true;
-            els.importCsvBtn.disabled = true;
+            syncImportButton();
             try {
-                for (const rec of records) {
-                    await client.saveItem(rec, false);
-                }
+                const dataset = await client.createDataset(draft.fileName, draft.headers);
+                await client.importRecords(
+                    dataset.id,
+                    draft.mapped.records.map((record) => ({ ...record, datasetId: dataset.id })),
+                );
+                closeModal();
+                await loadDatasets();
+                state.datasetId = dataset.id;
+                await applyDatasetScope();
+                state.statusText = `Imported ${draft.mapped.records.length} row(s) into "${dataset.name}".${draft.mapped.skipped > 0 ? ` ${draft.mapped.skipped} duplicate row(s) skipped.` : ""}`;
+                render();
             } finally {
                 state.csvImporting = false;
-                els.importCsvBtn.disabled = false;
+                syncImportButton();
             }
-
-            closeModal();
-            await applySort();
-            state.statusText = `Imported ${records.length} CSV record(s) under "${chosenCategory}".${skippedDuplicates > 0 ? ` ${skippedDuplicates} row(s) repeated a record ID already in this file and were skipped.` : ""}${dropped > 0 ? ` ${dropped} row(s) exceeded the ${MAX_CSV_ROWS}-row import limit and were skipped.` : ""}`;
-            els.statusBar.textContent = state.statusText;
-            await refreshDashboard();
         }),
     );
 
@@ -802,11 +903,27 @@ export async function mountRecordsWorkspace(container) {
     els.closeModalBtn.addEventListener("click", closeModal);
     els.cancelModalBtn.addEventListener("click", closeModal);
 
+    els.datasetList?.addEventListener("click", (event) => {
+        const removeBtn = event.target.closest("[data-dataset-delete]");
+        if (removeBtn) {
+            deleteDatasetRecords(removeBtn);
+            return;
+        }
+        const selectBtn = event.target.closest("[data-dataset-id]");
+        if (selectBtn) selectDataset(selectBtn.dataset.datasetId || null);
+    });
+
     els.recordForm.addEventListener(
         "submit",
         handleAction(async (e) => {
             e.preventDefault();
+            if (!state.datasetId) {
+                state.statusText = "Select a file before saving a record.";
+                els.statusBar.textContent = state.statusText;
+                return;
+            }
             const existingId = els.internalId.value.trim();
+            const existing = existingId ? client.getItems().find((item) => item.id === existingId) : null;
             const record = {
                 recordId: els.fieldRecordId.value.trim(),
                 name: els.fieldName.value.trim(),
@@ -814,11 +931,14 @@ export async function mountRecordsWorkspace(container) {
                 status: els.fieldStatus.value,
                 amount: Number(els.fieldAmount.value) || 0,
                 date: els.fieldDate.value,
-                archived: false,
+                archived: existing?.archived ?? false,
+                datasetId: existing?.datasetId ?? state.datasetId,
+                data: existing?.data ?? {},
             };
             if (existingId) record.id = existingId;
             await client.saveItem(record, Boolean(existingId));
             closeModal();
+            await loadDatasets();
             await applySort();
             await refreshDashboard();
         }),
@@ -831,7 +951,6 @@ export async function mountRecordsWorkspace(container) {
             if (sortRequest) {
                 state.sortField = sortRequest.field;
                 state.sortDir = sortRequest.direction;
-                els.sortField.value = sortRequest.field;
                 els.sortDir.value = sortRequest.direction;
                 await applySort();
                 return;
@@ -854,6 +973,7 @@ export async function mountRecordsWorkspace(container) {
                 if (!confirmed) return;
 
                 await client.deleteItem(target.id);
+                await loadDatasets();
                 await applySort();
                 await refreshDashboard();
             }
@@ -861,6 +981,7 @@ export async function mountRecordsWorkspace(container) {
     );
 
     syncDropdownUIs("");
+    await loadDatasets();
     await applySort();
     await refreshDashboard();
 }

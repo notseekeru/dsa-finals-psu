@@ -1,19 +1,17 @@
-const BUILTIN_CATEGORY_HINTS = {
-    customer: ["customer", "client", "buyer", "account", "contact", "company", "email", "phone", "address"],
-    inventory: ["inventory", "stock", "sku", "item", "product", "warehouse", "qty", "quantity", "unit", "supplier"],
-    order: ["order", "invoice", "po", "purchase", "order_id", "orderid", "subtotal", "shipping", "fulfillment"],
-    appointment: ["appointment", "schedule", "booking", "slot", "session", "meeting", "time", "calendar", "visit"],
+const MAPPING_ALIASES = {
+    recordId: ["record id", "recordid", "order id", "id", "code", "sku"],
+    date: ["date", "order date", "created at", "created", "schedule", "appointment date"],
+    amount: ["amount", "price", "balance", "total", "cost", "fee", "qty", "quantity"],
+    category: ["category", "type"],
+    status: ["status", "state", "condition"],
+    name: ["name", "customer name", "customer", "client", "brand", "company", "item", "product", "title", "branch"],
 };
 
-const BUILTIN_STATUS_HINTS = {
-    Active: ["active", "open", "enabled", "ongoing", "current"],
-    Pending: ["pending", "waiting", "queued", "hold", "draft", "review"],
-    Completed: ["completed", "complete", "done", "closed", "paid", "fulfilled", "delivered"],
-};
+const MIN_FUZZY_ALIAS_LENGTH = 4;
 
-export function parseCsvText(csvText) {
-    const input = String(csvText ?? "").replace(/^\uFEFF/, "");
-    const rows = [];
+export function parseCsv(text) {
+    const input = String(text ?? "").replace(/^\uFEFF/, "");
+    const grid = [];
     let currentRow = [];
     let currentField = "";
     let inQuotes = false;
@@ -42,14 +40,14 @@ export function parseCsvText(csvText) {
             currentField = "";
         } else if (ch === "\r" && next === "\n") {
             currentRow.push(currentField.trim());
-            rows.push(currentRow);
+            grid.push(currentRow);
             currentRow = [];
             currentField = "";
             i++;
             line++;
         } else if (ch === "\n" || ch === "\r") {
             currentRow.push(currentField.trim());
-            rows.push(currentRow);
+            grid.push(currentRow);
             currentRow = [];
             currentField = "";
             line++;
@@ -59,44 +57,121 @@ export function parseCsvText(csvText) {
     }
 
     if (inQuotes) {
-        return { headers: [], recordsRaw: [], duplicateHeaders: [], error: `Unterminated quoted field opened on line ${quoteLine}.` };
+        return { headers: [], rows: [], problems: [], fatal: { row: quoteLine, reason: "unterminated quoted field" } };
     }
 
     if (currentField.length > 0 || currentRow.length > 0) {
         currentRow.push(currentField.trim());
-        rows.push(currentRow);
+        grid.push(currentRow);
     }
 
-    const nonEmptyRows = rows.filter((r) => r.some((cell) => cell !== ""));
+    const nonEmptyRows = grid.filter((row) => row.some((cell) => cell !== ""));
     if (nonEmptyRows.length === 0) {
-        return { headers: [], recordsRaw: [], duplicateHeaders: [] };
+        return { headers: [], rows: [], problems: [], fatal: null };
     }
 
-    const headers = [];
-    const headerIndexes = [];
-    const duplicateHeaders = [];
+    const headers = nonEmptyRows[0].map((raw, index) => raw || `Column ${index + 1}`);
+    const rows = nonEmptyRows.slice(1);
+    const problems = [];
+    const seenHeaders = new Set();
 
-    nonEmptyRows[0].forEach((raw, idx) => {
-        const label = raw || `Column ${idx + 1}`;
-        if (headers.some((h) => normalizeKey(h) === normalizeKey(label))) {
-            duplicateHeaders.push(label);
+    for (const label of headers) {
+        const key = normalizeKey(label);
+        if (seenHeaders.has(key)) {
+            problems.push({ row: 0, column: label, reason: "duplicate column" });
+        }
+        seenHeaders.add(key);
+    }
+
+    rows.forEach((cells, index) => {
+        for (let i = headers.length; i < cells.length; i++) {
+            problems.push({ row: index + 1, column: `Column ${i + 1}`, reason: "extra value has no header" });
+        }
+    });
+
+    return { headers, rows, problems, fatal: null };
+}
+
+export function detectMapping(headers) {
+    const normalized = headers.map((header) => normalizeKey(header));
+    const claimed = new Set();
+    const picked = {};
+    const find = (aliases, fuzzy) => {
+        for (const alias of aliases) {
+            if (fuzzy && alias.length < MIN_FUZZY_ALIAS_LENGTH) continue;
+            const index = normalized.findIndex((header, i) => !claimed.has(i) && (fuzzy ? header.includes(alias) : header === alias));
+            if (index !== -1) return index;
+        }
+        return -1;
+    };
+
+    // AI HERE: alias priority plus exact-before-fuzzy keeps "Qty,Price" resolving amount to Price and stops short aliases like "id" matching "Paid". Per-dataset header overrides are the upgrade path.
+    for (const fuzzy of [false, true]) {
+        for (const [key, aliases] of Object.entries(MAPPING_ALIASES)) {
+            if (picked[key] != null) continue;
+            const index = find(aliases, fuzzy);
+            if (index === -1) continue;
+            claimed.add(index);
+            picked[key] = headers[index];
+        }
+    }
+
+    return {
+        recordId: picked.recordId ?? null,
+        name: picked.name ?? null,
+        amount: picked.amount ?? null,
+        date: picked.date ?? null,
+        category: picked.category ?? null,
+        status: picked.status ?? null,
+    };
+}
+
+export function mapRows(headers, rows, mapping) {
+    const columnIndex = new Map(headers.map((header, index) => [header, index]));
+    const records = [];
+    const problems = [];
+    const seenRecordIds = new Set();
+    let skipped = 0;
+
+    rows.forEach((cells, index) => {
+        const rowNumber = index + 1;
+        const cell = (key) => {
+            const header = mapping[key];
+            const position = header == null ? undefined : columnIndex.get(header);
+            return position === undefined ? "" : String(cells[position] ?? "");
+        };
+        const flag = (column, reason) => problems.push({ row: rowNumber, column: column ?? null, reason });
+
+        const recordId = cell("recordId");
+        if (recordId && seenRecordIds.has(recordId)) {
+            skipped++;
+            flag(mapping.recordId, "duplicate record id");
             return;
         }
-        headers.push(label);
-        headerIndexes.push(idx);
-    });
+        if (recordId) seenRecordIds.add(recordId);
 
-    const dataRows = nonEmptyRows.slice(1);
+        const name = cell("name");
+        if (!name) flag(mapping.name, "missing name");
 
-    const recordsRaw = dataRows.map((cells) => {
-        const obj = {};
-        headers.forEach((h, i) => {
-            obj[h] = cells[headerIndexes[i]] ?? "";
+        const amount = parseAmount(cell("amount"));
+        if (!amount.ok) flag(mapping.amount, "amount not a number");
+
+        const date = parseDate(cell("date"));
+        if (!date.ok) flag(mapping.date, "date not a valid date");
+
+        records.push({
+            recordId,
+            name: name || `Imported Row ${rowNumber}`,
+            category: cell("category") || "Customer",
+            status: cell("status") || "Active",
+            amount: amount.value,
+            date: date.value,
+            archived: false,
+            data: Object.fromEntries(headers.map((header, position) => [header, cells[position] ?? ""])),
         });
-        return obj;
     });
 
-    return { headers, recordsRaw, duplicateHeaders };
+    return { records, problems, skipped };
 }
 
 function normalizeKey(str) {
@@ -106,168 +181,20 @@ function normalizeKey(str) {
         .trim();
 }
 
-function pickField(rowObj, lowerMap, candidates) {
-    for (const cand of candidates) {
-        if (lowerMap[cand] !== undefined && String(lowerMap[cand]).trim() !== "") {
-            return String(lowerMap[cand]).trim();
-        }
-    }
-    for (const [key, val] of Object.entries(rowObj)) {
-        const norm = normalizeKey(key);
-        if (candidates.some((c) => norm === c || norm.includes(c)) && String(val ?? "").trim() !== "") {
-            return String(val).trim();
-        }
-    }
-    return "";
+function parseAmount(raw) {
+    const text = String(raw ?? "").trim();
+    if (text === "") return { value: 0, ok: true };
+    const cleaned = text.replace(/[^0-9.-]/g, "");
+    const value = cleaned === "" ? Number.NaN : Number(cleaned);
+    return Number.isFinite(value) ? { value, ok: true } : { value: 0, ok: false };
 }
 
-function parseAmount(rawVal) {
-    if (rawVal === undefined || rawVal === null || rawVal === "") return 0;
-    const cleaned = String(rawVal).replace(/[^0-9.-]+/g, "");
-    const num = Number(cleaned);
-    return Number.isFinite(num) ? num : 0;
-}
-
-function parseDate(rawVal) {
+function parseDate(raw) {
     const fallback = new Date().toISOString().slice(0, 10);
-    const str = String(rawVal ?? "").trim();
-    if (!str) return fallback;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-    const parsed = new Date(str);
-    if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toISOString().slice(0, 10);
-    }
-    return fallback;
-}
-
-export function detectCsvCategory(headers, recordsRaw, availableCategories = []) {
-    const categories = availableCategories.length > 0 ? availableCategories : ["Customer", "Inventory", "Order", "Appointment"];
-
-    const scores = new Map(categories.map((cat) => [cat, 0]));
-    const normalizedHeaders = headers.map((h) => normalizeKey(h));
-    const sampleText = [...normalizedHeaders, ...recordsRaw.slice(0, 15).flatMap((r) => Object.values(r).map((v) => normalizeKey(v)))].join(" ");
-
-    for (const cat of categories) {
-        const normCat = normalizeKey(cat);
-        if (!normCat) continue;
-
-        for (const h of normalizedHeaders) {
-            if (h === normCat || h.includes(normCat)) {
-                scores.set(cat, (scores.get(cat) || 0) + 5);
-            }
-        }
-
-        for (const row of recordsRaw.slice(0, 15)) {
-            for (const [k, v] of Object.entries(row)) {
-                const nk = normalizeKey(k);
-                const nv = normalizeKey(v);
-                if ((nk.includes("category") || nk.includes("type")) && nv === normCat) {
-                    scores.set(cat, (scores.get(cat) || 0) + 6);
-                } else if (nv === normCat) {
-                    scores.set(cat, (scores.get(cat) || 0) + 3);
-                }
-            }
-        }
-
-        const builtinList = BUILTIN_CATEGORY_HINTS[normCat] || [];
-        for (const kw of builtinList) {
-            if (normalizedHeaders.some((h) => h.includes(kw))) {
-                scores.set(cat, (scores.get(cat) || 0) + 3);
-            }
-            if (sampleText.includes(kw)) {
-                scores.set(cat, (scores.get(cat) || 0) + 1);
-            }
-        }
-
-        const catTokens = normCat.split(/\s+/).filter((t) => t.length > 2);
-        for (const tok of catTokens) {
-            if (normalizedHeaders.some((h) => h.includes(tok))) {
-                scores.set(cat, (scores.get(cat) || 0) + 3);
-            } else if (sampleText.includes(tok)) {
-                scores.set(cat, (scores.get(cat) || 0) + 1);
-            }
-        }
-    }
-
-    let bestCategory = categories[0];
-    let bestScore = -1;
-    for (const cat of categories) {
-        const sc = scores.get(cat) || 0;
-        if (sc > bestScore) {
-            bestScore = sc;
-            bestCategory = cat;
-        }
-    }
-
-    return {
-        detectedCategory: bestCategory,
-        confidenceScore: Math.max(0, bestScore),
-        scores: Object.fromEntries(scores),
-    };
-}
-
-export function detectRowStatus(rowObj, availableStatuses = []) {
-    const statuses = availableStatuses.length > 0 ? availableStatuses : ["Active", "Pending", "Completed"];
-
-    const lowerMap = {};
-    for (const [k, v] of Object.entries(rowObj)) {
-        lowerMap[normalizeKey(k)] = v;
-    }
-
-    const rawStatus = pickField(rowObj, lowerMap, ["status", "state", "condition"]);
-    if (rawStatus) {
-        const exact = statuses.find((s) => s.toLowerCase() === rawStatus.toLowerCase());
-        if (exact) return exact;
-
-        const normRaw = normalizeKey(rawStatus);
-        for (const s of statuses) {
-            const hints = BUILTIN_STATUS_HINTS[s] || [];
-            if (hints.some((h) => normRaw.includes(h))) return s;
-        }
-    }
-
-    return statuses[0] || "Active";
-}
-
-export function mapCsvRowsToRecords(recordsRaw, chosenCategory, availableStatuses = [], existingCount = 0) {
-    const baseStamp = Date.now();
-    const records = [];
-    const seenRecordIds = new Set();
-    let skippedDuplicates = 0;
-
-    recordsRaw.forEach((rowObj, index) => {
-        const lowerMap = {};
-        for (const [k, v] of Object.entries(rowObj)) {
-            lowerMap[normalizeKey(k)] = v;
-        }
-
-        const recordId = pickField(rowObj, lowerMap, ["record id", "recordid", "id", "code", "order id", "sku"]) || `REC-${100 + existingCount + index + 1}`;
-
-        if (seenRecordIds.has(recordId)) {
-            skippedDuplicates++;
-            return;
-        }
-        seenRecordIds.add(recordId);
-
-        const name = pickField(rowObj, lowerMap, ["name", "customer", "brand", "item", "title", "client", "product", "company"]) || `Imported Row ${index + 1}`;
-
-        const amount = parseAmount(pickField(rowObj, lowerMap, ["amount", "price", "balance", "total", "cost", "fee"]));
-
-        const date = parseDate(pickField(rowObj, lowerMap, ["date", "created", "created at", "schedule", "appointment date"]));
-
-        const status = detectRowStatus(rowObj, availableStatuses);
-
-        records.push({
-            id: `${baseStamp}-${index}-${Math.random().toString(36).slice(2, 6)}`,
-            recordId,
-            name,
-            category: chosenCategory,
-            status,
-            amount,
-            date,
-            archived: false,
-        });
-    });
-
-    return { records, skippedDuplicates };
+    const text = String(raw ?? "").trim();
+    if (!text) return { value: fallback, ok: true };
+    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return { value: text, ok: true };
+    const parsed = new Date(text);
+    if (Number.isNaN(parsed.getTime())) return { value: fallback, ok: false };
+    return { value: parsed.toISOString().slice(0, 10), ok: true };
 }

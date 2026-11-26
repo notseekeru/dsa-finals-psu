@@ -47,18 +47,20 @@ const res = await tools.mcp__playwright__browser_evaluate({
 
 ## Routes
 
-Routes (`src/shared/router.js`): Home `/`, catch-all `*`.
+`src/shared/router.js`: `/` landing, `/signin`, `/signup`, `/records`, catch-all `*`.
 
-1. `/`: wait for `main h1` and assert it reads `DSA Finals PSU`.
-2. Click **"404 route"** (an `<a>` to `/missing`) and assert `main h1` reads `Not found`.
-3. Click **"Back home"** and assert the landing heading again.
+1. `/`: `main h1` renders, and the navbar carries a link to `/signin`.
+2. `/signin`: the card renders, and a fresh account submitted there lands on `/` with the navbar showing the email and a Sign out control.
+3. `/records` while signed out: redirected to `/signin`.
+4. `/records` while signed in: the table view is the default, the file list shows at least one dataset, and every dashboard canvas reports a non-zero width and height.
+5. `/missing`: `main h1` reads `Not found`, and the back control returns to `/`.
 
-That is the whole surface. Add steps here when routes exist.
+Add a step here when a route ships.
 
 ## Preconditions
 
 - Dev stack up: `make up`. `/` on 5373 and `/api/healthz` on 4100 must answer 200.
-- No auth: nothing in this app gates a route.
+- No auth on `/`, `/signin`, `/signup`. `/records` needs a session: register through the form, or POST `/api/auth/register` and reuse the cookie. A redirect to `/signin` on `/records` is the signed-out path, not a bug.
 - `playwright-mcp` must resolve on PATH, which means pi running inside the flake shell
   (`nix develop`/direnv). When it does not, the server fails at session start and `pi mcp list` says so.
 - Adding or changing a server mid-session needs `/reload`.
