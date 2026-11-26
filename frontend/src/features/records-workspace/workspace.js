@@ -1,6 +1,6 @@
 import { detectMapping, mapRows, parseCsv } from "./csv-importer.js";
 import { renderDashboard } from "./dashboard.js";
-import { addOption, deleteOption, loadDropdownOptions, renameOption, saveDropdownOptions } from "./dropdown-options.js";
+import { deleteOption, renameOption } from "./dropdown-options.js";
 import { escapeHtml } from "./escape.js";
 import { createRecordsClient } from "./records-api.js";
 import { CORE_COLUMNS, recordsTableHtml, sortRequestFromEvent, tableColumns } from "./records-table.js";
@@ -42,7 +42,7 @@ export async function mountRecordsWorkspace(container) {
         metrics: { comparisons: 0, shifts: 0 },
         matches: null,
         statusText: "Ready.",
-        dropdownOptions: loadDropdownOptions(),
+        dropdownOptions: { categories: [], statuses: [] },
         activeDropdownGroup: "categories",
         csvDraft: null,
         csvImporting: false,
@@ -64,7 +64,6 @@ export async function mountRecordsWorkspace(container) {
         dropdownTarget: q("#dsaDropdownTarget"),
         dropdownExistingSelect: q("#dsaDropdownExistingSelect"),
         dropdownInput: q("#dsaDropdownInput"),
-        addOptionBtn: q("#dsaAddOptionBtn"),
         renameOptionBtn: q("#dsaRenameOptionBtn"),
         deleteOptionBtn: q("#dsaDeleteOptionBtn"),
         dropdownMsg: q("#dsaDropdownMsg"),
@@ -385,7 +384,17 @@ export async function mountRecordsWorkspace(container) {
         reader.readAsText(file);
     }
 
+    function optionLists() {
+        const items = client.getItems();
+        const uniq = (key, fallback) => {
+            const values = [...new Set(items.map((item) => String(item[key] ?? "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+            return values.length > 0 ? values : [fallback];
+        };
+        return { categories: uniq("category", "General"), statuses: uniq("status", "Active") };
+    }
+
     function syncDropdownUIs(message = "") {
+        state.dropdownOptions = optionLists();
         const { categories, statuses } = state.dropdownOptions;
         const group = state.activeDropdownGroup;
         const currentGroupList = group === "categories" ? categories : statuses;
@@ -429,12 +438,6 @@ export async function mountRecordsWorkspace(container) {
 
     async function applyDropdownMutation(nextList, deletedValue = "") {
         const group = state.activeDropdownGroup;
-        state.dropdownOptions = {
-            ...state.dropdownOptions,
-            [group]: nextList,
-        };
-        saveDropdownOptions(state.dropdownOptions);
-
         const fallbackVal = nextList[0] || "";
         const items = client.getItems();
 
@@ -730,23 +733,6 @@ export async function mountRecordsWorkspace(container) {
         if (els.dropdownInput) els.dropdownInput.value = e.target.value;
     });
 
-    els.addOptionBtn?.addEventListener(
-        "click",
-        handleAction(async () => {
-            const group = state.activeDropdownGroup;
-            const { list, error } = addOption(state.dropdownOptions[group], els.dropdownInput?.value);
-            if (error) {
-                syncDropdownUIs(error);
-                return;
-            }
-            const addedLabel = els.dropdownInput.value.trim();
-            els.dropdownInput.value = "";
-            await applyDropdownMutation(list);
-            syncDropdownUIs(`Added "${addedLabel}".`);
-            if (els.dropdownExistingSelect) els.dropdownExistingSelect.value = addedLabel;
-        }),
-    );
-
     els.renameOptionBtn?.addEventListener(
         "click",
         handleAction(async () => {
@@ -777,9 +763,6 @@ export async function mountRecordsWorkspace(container) {
             if (group === "categories" && state.categoryFilter === oldVal) state.categoryFilter = newVal;
             if (group === "categories" && state.activeNav === oldVal) state.activeNav = "home";
             if (group === "statuses" && state.statusFilter === oldVal) state.statusFilter = newVal;
-
-            state.dropdownOptions = { ...state.dropdownOptions, [group]: renamedList };
-            saveDropdownOptions(state.dropdownOptions);
             if (els.dropdownInput) els.dropdownInput.value = "";
             syncDropdownUIs(`Renamed "${oldVal}" to "${newVal}".`);
             if (els.dropdownExistingSelect) els.dropdownExistingSelect.value = newVal;
