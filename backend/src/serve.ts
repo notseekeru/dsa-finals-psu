@@ -1,3 +1,9 @@
+try {
+  process.loadEnvFile('.env');
+} catch {
+  // Ignore if .env is absent and env vars are already provided
+}
+
 import { serve } from "@hono/node-server";
 import app from "./index.js";
 import { pool } from "./shared/db.js";

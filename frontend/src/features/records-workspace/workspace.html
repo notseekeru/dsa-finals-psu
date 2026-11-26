@@ -1,0 +1,320 @@
+<section class="dsa-drive-shell" aria-label="DSA Records Workspace">
+  <header class="dsa-topbar">
+    <div class="dsa-brand">
+      <span class="dsa-brand-mark" aria-hidden="true"></span>
+      <span class="dsa-brand-title">DataDrive</span>
+    </div>
+
+    <div class="dsa-search-wrap">
+      <label for="dsaSearchInput" class="sr-only">Search records</label>
+      <input
+        id="dsaSearchInput"
+        class="dsa-search-input"
+        type="search"
+        placeholder="Search records by keyword, ID, or exact value..."
+        autocomplete="off"
+      />
+      <button
+        id="dsaFilterToggleBtn"
+        class="dsa-filter-btn"
+        type="button"
+        aria-expanded="false"
+        aria-controls="dsaFilterDrawer"
+      >
+        Filters
+      </button>
+
+      <div id="dsaFilterDrawer" class="dsa-filter-drawer" hidden>
+        <div class="dsa-filter-grid">
+          <label class="dsa-field">
+            <span>Search Algorithm</span>
+            <select id="dsaSearchMode">
+              <option value="linear">Linear Search (Partial match, O(n))</option>
+              <option value="binary">Binary Search (Exact match, O(log n))</option>
+            </select>
+          </label>
+
+          <label class="dsa-field">
+            <span>Category Filter</span>
+            <select id="dsaCategoryFilter">
+              <option value="ALL">All Categories</option>
+              <option value="Customer">Customer</option>
+              <option value="Inventory">Inventory</option>
+              <option value="Order">Order</option>
+              <option value="Appointment">Appointment</option>
+            </select>
+          </label>
+
+          <label class="dsa-field">
+            <span>Status Filter</span>
+            <select id="dsaStatusFilter">
+              <option value="ALL">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Pending">Pending</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </label>
+
+          <label class="dsa-field">
+            <span>Insertion Sort Field</span>
+            <select id="dsaSortField">
+              <option value="name">Name / Brand (A–Z)</option>
+              <option value="amount">Price / Balance</option>
+              <option value="recordId">Record / Order ID</option>
+              <option value="date">Date</option>
+            </select>
+          </label>
+
+          <label class="dsa-field">
+            <span>Sort Direction</span>
+            <select id="dsaSortDir">
+              <option value="asc">Ascending</option>
+              <option value="desc">Descending</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="dsa-dropdown-manager" id="dsaDropdownManager">
+          <div class="dsa-dropdown-mgr-top">
+            <span class="dsa-dropdown-mgr-title">Customize Dropdown Options</span>
+            <label class="dsa-field dsa-inline-field">
+              <span>Dropdown</span>
+              <select id="dsaDropdownTarget">
+                <option value="categories">Category</option>
+                <option value="statuses">Status</option>
+              </select>
+            </label>
+            <label class="dsa-field dsa-inline-field">
+              <span>Existing Option</span>
+              <select id="dsaDropdownExistingSelect"></select>
+            </label>
+          </div>
+
+          <div class="dsa-dropdown-mgr-controls">
+            <input
+              type="text"
+              id="dsaDropdownInput"
+              class="dsa-dropdown-input"
+              placeholder="New or renamed option label..."
+            />
+            <button type="button" class="dsa-btn dsa-btn-ghost" id="dsaAddOptionBtn">Add</button>
+            <button type="button" class="dsa-btn dsa-btn-ghost" id="dsaRenameOptionBtn">Rename</button>
+            <button type="button" class="dsa-btn dsa-btn-ghost dsa-danger-btn" id="dsaDeleteOptionBtn">Delete</button>
+          </div>
+
+          <div class="dsa-dropdown-mgr-msg" id="dsaDropdownMsg" role="status" aria-live="polite"></div>
+        </div>
+
+        <div class="dsa-filter-actions">
+          <button id="dsaRunSortBtn" class="dsa-btn dsa-btn-primary" type="button">
+            Run Insertion Sort
+          </button>
+          <button id="dsaResetFiltersBtn" class="dsa-btn dsa-btn-ghost" type="button">
+            Reset Filters
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dsa-topbar-actions">
+      <span id="dsaSyncBadge" class="dsa-badge">Local List Mode</span>
+      <a href="/missing" class="dsa-link-subtle">404 route</a>
+    </div>
+  </header>
+
+  <div class="dsa-body">
+    <aside class="dsa-sidebar" aria-label="Workspace Navigation">
+      <button id="dsaNewRecordBtn" class="dsa-new-btn" type="button">
+        <span class="dsa-plus" aria-hidden="true">+</span>
+        <span>New</span>
+      </button>
+
+      <nav class="dsa-nav-list">
+        <button class="dsa-nav-item is-active" type="button" data-nav="home">Home</button>
+        <button class="dsa-nav-item" type="button" data-nav="Customer">Customers</button>
+        <button class="dsa-nav-item" type="button" data-nav="Inventory">Inventory</button>
+        <button class="dsa-nav-item" type="button" data-nav="Order">Orders</button>
+        <button class="dsa-nav-item" type="button" data-nav="Appointment">Appointments</button>
+        <button class="dsa-nav-item" type="button" data-nav="archived">Archived</button>
+      </nav>
+
+      <div class="dsa-capacity-box">
+        <div class="dsa-capacity-label">Dynamic Array Capacity</div>
+        <div class="dsa-capacity-bar" aria-hidden="true">
+          <div id="dsaCapacityFill" class="dsa-capacity-fill"></div>
+        </div>
+        <div id="dsaCapacityText" class="dsa-capacity-meta">0 / 100 records</div>
+        <div id="dsaComplexityMeta" class="dsa-complexity-meta">
+          Insertion Sort: 0 comparisons · 0 shifts
+        </div>
+      </div>
+    </aside>
+
+    <main class="dsa-main">
+      <div class="dsa-main-header">
+        <div>
+          <h1 id="dsaWorkspaceTitle" class="dsa-page-title">DataDrive</h1>
+          <p id="dsaWorkspaceSubtitle" class="dsa-page-subtitle">
+            Business Record Management
+          </p>
+        </div>
+
+        <div class="dsa-view-toggle" role="group" aria-label="View mode">
+          <button id="dsaListViewBtn" class="dsa-view-btn" type="button" aria-pressed="false">
+            List
+          </button>
+          <button
+            id="dsaGridViewBtn"
+            class="dsa-view-btn is-active"
+            type="button"
+            aria-pressed="true"
+          >
+            Grid
+          </button>
+        </div>
+      </div>
+
+      <div id="dsaStatusBar" class="dsa-status-bar" role="status" aria-live="polite">
+        Ready.
+      </div>
+
+      <section class="dsa-section" aria-labelledby="dsaSuggestedHeading">
+        <div class="dsa-section-header">
+          <button
+            id="dsaToggleSuggestedBtn"
+            class="dsa-collapse-btn"
+            type="button"
+            aria-expanded="true"
+          >
+            <span id="dsaSuggestedHeading">Sorted highlights</span>
+          </button>
+          <span class="dsa-section-hint">Leading entries in sorted order</span>
+        </div>
+        <div id="dsaSuggestedRow" class="dsa-suggested-grid"></div>
+      </section>
+
+      <section class="dsa-section" aria-labelledby="dsaRecordsHeading">
+        <div class="dsa-section-header">
+          <button
+            id="dsaToggleRecordsBtn"
+            class="dsa-collapse-btn"
+            type="button"
+            aria-expanded="true"
+          >
+            <span id="dsaRecordsHeading">All records</span>
+          </button>
+          <span id="dsaRecordCountLabel" class="dsa-section-hint">0 records</span>
+        </div>
+        <div id="dsaRecordsContainer" class="dsa-records-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="dsaRecordModal" class="dsa-modal">
+    <form id="dsaRecordForm" method="dialog" class="dsa-modal-card">
+      <div class="dsa-modal-header">
+        <h2 id="dsaModalTitle">Add Record</h2>
+        <button id="dsaCloseModalBtn" class="dsa-icon-btn" type="button" aria-label="Close">
+          ✕
+        </button>
+      </div>
+
+      <input type="hidden" id="dsaRecordInternalId" />
+
+      <div class="dsa-form-grid">
+        <label class="dsa-field">
+          <span>Record / Order ID</span>
+          <input id="dsaFieldRecordId" type="text" required placeholder="REC-104" />
+        </label>
+
+        <label class="dsa-field">
+          <span>Customer / Brand / Item Name</span>
+          <input id="dsaFieldName" type="text" required placeholder="e.g. Santos Hardware" />
+        </label>
+
+        <label class="dsa-field">
+          <span>Category</span>
+          <select id="dsaFieldCategory">
+            <option value="Customer">Customer</option>
+            <option value="Inventory">Inventory</option>
+            <option value="Order">Order</option>
+            <option value="Appointment">Appointment</option>
+          </select>
+        </label>
+
+        <label class="dsa-field">
+          <span>Status</span>
+          <select id="dsaFieldStatus">
+            <option value="Active">Active</option>
+            <option value="Pending">Pending</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </label>
+
+        <label class="dsa-field">
+          <span>Price / Balance</span>
+          <input id="dsaFieldAmount" type="number" step="0.01" min="0" required placeholder="1250.00" />
+        </label>
+
+        <label class="dsa-field">
+          <span>Date</span>
+          <input id="dsaFieldDate" type="date" required />
+        </label>
+      </div>
+
+      <div class="dsa-csv-section" id="dsaCsvSection">
+        <div class="dsa-csv-header">
+          <span class="dsa-csv-title">Add a File (CSV Import)</span>
+          <button type="button" class="dsa-btn dsa-btn-ghost dsa-btn-sm" id="dsaBrowseCsvBtn">
+            Browse Files
+          </button>
+          <input
+            type="file"
+            id="dsaCsvFileInput"
+            accept=".csv,text/csv"
+            hidden
+          />
+        </div>
+
+        <div
+          id="dsaCsvDropzone"
+          class="dsa-csv-dropzone"
+          role="button"
+          tabindex="0"
+          aria-label="Drag and drop a CSV file here or click to browse"
+        >
+          <p class="dsa-csv-drop-text">Drag &amp; drop a <strong>.csv</strong> file here, or use <strong>Browse Files</strong></p>
+          <p class="dsa-csv-subtext" id="dsaCsvFileMeta">No CSV file selected yet.</p>
+        </div>
+
+        <div id="dsaCsvReviewBox" class="dsa-csv-review" hidden>
+          <div class="dsa-csv-review-top">
+            <label class="dsa-field dsa-csv-cat-field">
+              <span>Detected / Selected Category</span>
+              <select id="dsaCsvCategorySelect"></select>
+            </label>
+            <div class="dsa-csv-detected-badge" id="dsaCsvDetectedInfo"></div>
+          </div>
+
+          <div class="dsa-csv-preview-wrap">
+            <table class="dsa-csv-preview-table" id="dsaCsvPreviewTable"></table>
+          </div>
+
+          <div class="dsa-csv-review-actions">
+            <button type="button" class="dsa-btn dsa-btn-ghost dsa-btn-sm" id="dsaClearCsvBtn">
+              Clear File
+            </button>
+            <button type="button" class="dsa-btn dsa-btn-primary dsa-btn-sm" id="dsaImportCsvBtn">
+              Import CSV Records
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="dsa-modal-footer">
+        <button id="dsaCancelModalBtn" class="dsa-btn dsa-btn-ghost" type="button">Cancel</button>
+        <button class="dsa-btn dsa-btn-primary" type="submit">Save &amp; Sort</button>
+      </div>
+    </form>
+  </dialog>
+</section>

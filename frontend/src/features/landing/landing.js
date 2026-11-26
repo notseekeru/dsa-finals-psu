@@ -29,11 +29,16 @@ async function paintSession(el) {
     email.textContent = user.email;
     email.title = user.email;
 
+    const workspace = document.createElement("a");
+    workspace.className = "secondary-link";
+    workspace.href = "/records";
+    workspace.textContent = "Open workspace";
+
     const out = document.createElement("button");
     out.type = "button";
     out.className = "auth-signout";
     out.textContent = "Sign out";
     out.addEventListener("click", () => void signOut());
 
-    slot.replaceChildren(email, out);
+    slot.replaceChildren(email, workspace, out);
 }
