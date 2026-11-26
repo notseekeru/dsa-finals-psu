@@ -1,5 +1,4 @@
 import Chart from "chart.js/auto";
-import { getJson } from "../../shared/api.js";
 import { escapeHtml } from "./escape.js";
 
 const PALETTE = ["--secondary", "--accent-dark", "--primary", "--accent", "--muted"];
@@ -27,6 +26,7 @@ function emptyStats() {
         byCategory: [],
         byStatus: [],
         monthly: [],
+        byDataset: [],
         recent: [],
     };
 }
@@ -48,7 +48,7 @@ function mountCategoryChart(canvas, byCategory) {
             type: "bar",
             data: {
                 labels: byCategory.map((row) => row.category),
-                datasets: [{ label: "Records", data: byCategory.map((row) => row.count), backgroundColor: token("--secondary") }],
+                datasets: [{ label: "Records", data: byCategory.map((row) => row.count), backgroundColor: token("--secondary"), maxBarThickness: 48 }],
             },
             options: { ...CHART_BASE, plugins: { legend: { display: false } }, scales: countAxis() },
         }),
@@ -104,6 +104,47 @@ function mountStatusChart(canvas, byStatus) {
     );
 }
 
+function mountDatasetChart(canvas, byDataset, onSelectDataset) {
+    const colors = palette();
+
+    liveCharts.push(
+        new Chart(canvas, {
+            type: "bar",
+            data: {
+                labels: byDataset.map((row) => row.name),
+                datasets: [
+                    {
+                        label: "Records",
+                        data: byDataset.map((row) => row.count),
+                        backgroundColor: byDataset.map((_, index) => colors[index % colors.length]),
+                        maxBarThickness: 48,
+                    },
+                ],
+            },
+            options: {
+                ...CHART_BASE,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (item) => `${item.parsed.y} records · ${peso(byDataset[item.dataIndex].amount)}`,
+                        },
+                    },
+                },
+                scales: countAxis(),
+                onClick: (_event, elements) => {
+                    const hit = elements[0];
+                    if (hit && onSelectDataset) onSelectDataset(byDataset[hit.index].datasetId);
+                },
+                onHover: (event, elements) => {
+                    const target = event.native?.target;
+                    if (target) target.style.cursor = elements.length > 0 ? "pointer" : "default";
+                },
+            },
+        }),
+    );
+}
+
 function togglePanel(root, canvasId, emptyId, hasData, message) {
     const canvas = root.querySelector(`#${canvasId}`);
     const empty = root.querySelector(`#${emptyId}`);
@@ -128,14 +169,14 @@ function activityRow(row) {
     </tr>`;
 }
 
-export async function renderDashboard(root) {
+export async function renderDashboard(root, { datasetId = null, onSelectDataset, getStats } = {}) {
     if (!root) return;
     const mine = ++renderToken;
 
     let stats = emptyStats();
     let message = EMPTY_MESSAGE;
     try {
-        stats = await getJson("/records/stats");
+        stats = await getStats(datasetId);
     } catch (error) {
         message = error instanceof Error ? error.message : "Could not load dashboard totals.";
     }
@@ -164,6 +205,10 @@ export async function renderDashboard(root) {
 
     const statusCanvas = togglePanel(root, "dsaStatusChart", "dsaStatusChartEmpty", hasData && stats.byStatus.length > 0, message);
     if (statusCanvas) mountStatusChart(statusCanvas, stats.byStatus);
+
+    const byDataset = stats.byDataset ?? [];
+    const datasetCanvas = togglePanel(root, "dsaDatasetChart", "dsaDatasetChartEmpty", byDataset.length > 0, message);
+    if (datasetCanvas) mountDatasetChart(datasetCanvas, byDataset, onSelectDataset);
 
     const recent = stats.recent.slice(0, 5);
     const activityTable = root.querySelector("#dsaActivityTable");

@@ -1,9 +1,15 @@
 <section class="dsa-drive-shell" aria-label="DataSpace Workspace">
   <header class="dsa-topbar">
-    <div class="dsa-brand">
-      <span class="dsa-brand-mark" aria-hidden="true"></span>
+    <a class="dsa-brand" href="/" aria-label="DataSpace home">
+      <span class="dsa-brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="12" cy="6" rx="7.5" ry="3" />
+          <path d="M4.5 6v6c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3V6" />
+          <path d="M4.5 12v6c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3v-6" />
+        </svg>
+      </span>
       <span class="dsa-brand-title">Data<span>Space</span></span>
-    </div>
+    </a>
 
     <div class="dsa-search-wrap">
       <label for="dsaSearchInput" class="sr-only">Search records</label>
@@ -52,16 +58,6 @@
               <option value="Active">Active</option>
               <option value="Pending">Pending</option>
               <option value="Completed">Completed</option>
-            </select>
-          </label>
-
-          <label class="dsa-field">
-            <span>Insertion Sort Field</span>
-            <select id="dsaSortField">
-              <option value="name">Name / Brand (A–Z)</option>
-              <option value="amount">Price / Balance</option>
-              <option value="recordId">Record / Order ID</option>
-              <option value="date">Date</option>
             </select>
           </label>
 
@@ -117,7 +113,6 @@
     </div>
 
     <div class="dsa-topbar-actions">
-      <span id="dsaSyncBadge" class="dsa-badge">Local List Mode</span>
     </div>
   </header>
 
@@ -137,16 +132,10 @@
         <button class="dsa-nav-item" type="button" data-nav="archived">Archived</button>
       </nav>
 
-      <div class="dsa-capacity-box">
-        <div class="dsa-capacity-label">Dynamic Array Capacity</div>
-        <div class="dsa-capacity-bar" aria-hidden="true">
-          <div id="dsaCapacityFill" class="dsa-capacity-fill"></div>
-        </div>
-        <div id="dsaCapacityText" class="dsa-capacity-meta">0 / 100 records</div>
-        <div id="dsaComplexityMeta" class="dsa-complexity-meta">
-          Insertion Sort: 0 comparisons · 0 shifts
-        </div>
-      </div>
+      <section class="dsa-file-panel" aria-labelledby="dsaFilePanelTitle">
+        <h2 id="dsaFilePanelTitle" class="dsa-file-panel-title">Files</h2>
+        <div id="dsaDatasetList" class="dsa-file-list"></div>
+      </section>
     </aside>
 
     <main class="dsa-main">
@@ -162,15 +151,15 @@
           <button id="dsaListViewBtn" class="dsa-view-btn" type="button" aria-pressed="false">
             List
           </button>
+          <button id="dsaGridViewBtn" class="dsa-view-btn" type="button" aria-pressed="false">
+            Grid
+          </button>
           <button
-            id="dsaGridViewBtn"
+            id="dsaTableViewBtn"
             class="dsa-view-btn is-active"
             type="button"
             aria-pressed="true"
           >
-            Grid
-          </button>
-          <button id="dsaTableViewBtn" class="dsa-view-btn" type="button" aria-pressed="false">
             Table
           </button>
         </div>
@@ -198,7 +187,7 @@
       <section id="dsaDashboard" class="dsa-section" aria-labelledby="dsaDashboardHeading">
         <div class="dsa-section-header">
           <h2 id="dsaDashboardHeading" class="dsa-section-title">Business snapshot</h2>
-          <span class="dsa-section-hint">Totals across every record</span>
+          <span class="dsa-section-hint">Totals for the current view</span>
         </div>
 
         <div class="dsa-kpi-strip">
@@ -243,6 +232,14 @@
               <canvas id="dsaStatusChart" role="img" aria-label="Records by status"></canvas>
             </div>
             <p id="dsaStatusChartEmpty" class="dsa-panel-empty" hidden></p>
+          </article>
+
+          <article class="dsa-chart-panel">
+            <h3 class="dsa-panel-title">Rows per file</h3>
+            <div class="dsa-chart-canvas">
+              <canvas id="dsaDatasetChart" role="img" aria-label="Rows per file"></canvas>
+            </div>
+            <p id="dsaDatasetChartEmpty" class="dsa-panel-empty" hidden></p>
           </article>
 
           <article class="dsa-chart-panel dsa-activity-panel">
@@ -361,12 +358,15 @@
 
         <div id="dsaCsvReviewBox" class="dsa-csv-review" hidden>
           <div class="dsa-csv-review-top">
-            <label class="dsa-field dsa-csv-cat-field">
-              <span>Detected / Selected Category</span>
-              <select id="dsaCsvCategorySelect"></select>
-            </label>
-            <div class="dsa-csv-detected-badge" id="dsaCsvDetectedInfo"></div>
+            <span class="dsa-csv-detected-badge" id="dsaCsvDetectedInfo"></span>
           </div>
+
+          <div id="dsaCsvMapping" class="dsa-csv-mapping"></div>
+
+          <p id="dsaCsvReadyCount" class="dsa-csv-ready"></p>
+
+          <p id="dsaCsvProblemsCount" class="dsa-csv-problems-count"></p>
+          <ul id="dsaCsvProblems" class="dsa-csv-problems"></ul>
 
           <div class="dsa-csv-preview-wrap">
             <table class="dsa-csv-preview-table" id="dsaCsvPreviewTable"></table>
@@ -377,7 +377,7 @@
               Clear File
             </button>
             <button type="button" class="dsa-btn dsa-btn-primary dsa-btn-sm" id="dsaImportCsvBtn">
-              Import CSV Records
+              Import File
             </button>
           </div>
         </div>

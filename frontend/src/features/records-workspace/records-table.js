@@ -1,45 +1,59 @@
 import { escapeHtml } from "./escape.js";
 
-// AI HERE: /records/sort accepts only name, amount, recordId and date; making category and status sortable needs SORT_FIELDS extended first.
-const COLUMNS = [
-    { label: "Record", field: "recordId" },
-    { label: "Name", field: "name" },
-    { label: "Category", field: "" },
-    { label: "Status", field: "" },
-    { label: "Amount", field: "amount" },
-    { label: "Date", field: "date" },
+export const CORE_COLUMNS = [
+    { key: "recordId", label: "Record ID" },
+    { key: "name", label: "Name" },
+    { key: "category", label: "Category" },
+    { key: "status", label: "Status" },
+    { key: "amount", label: "Amount" },
+    { key: "date", label: "Date" },
 ];
+
+export function tableColumns(extraNames = []) {
+    const coreKeys = new Set(CORE_COLUMNS.map((column) => column.key));
+    const extras = extraNames.filter((name) => !coreKeys.has(name)).map((name) => ({ key: name, label: name, extra: true }));
+    return [...CORE_COLUMNS, ...extras];
+}
 
 function peso(value) {
     return `₱${Number(value || 0).toFixed(2)}`;
 }
 
 function headerCell(column, sortField, sortDir) {
-    if (!column.field) return `<th scope="col">${column.label}</th>`;
-
-    const active = column.field === sortField;
+    const active = column.key === sortField;
     const arrow = active ? `<span class="dsa-sort-arrow" aria-hidden="true">${sortDir === "asc" ? "▲" : "▼"}</span>` : "";
     const ariaSort = active ? (sortDir === "asc" ? "ascending" : "descending") : "none";
 
     return `<th scope="col" aria-sort="${ariaSort}">
-        <button type="button" class="dsa-sort-btn${active ? " is-active" : ""}" data-sort-field="${column.field}">${column.label}${arrow}</button>
+        <button type="button" class="dsa-sort-btn${active ? " is-active" : ""}" data-sort-field="${escapeHtml(column.key)}">${escapeHtml(column.label)}${arrow}</button>
     </th>`;
 }
 
-function bodyRow(item) {
+function bodyCell(item, column) {
+    if (column.extra) {
+        const value = item.data?.[column.key];
+        return `<td>${escapeHtml(value ?? "")}</td>`;
+    }
+    if (column.key === "amount") return `<td class="dsa-table-amount">${peso(item.amount)}</td>`;
+    if (column.key === "date") {
+        return `<td><time datetime="${escapeHtml(item.date)}">${escapeHtml(item.date)}</time></td>`;
+    }
+    if (column.key === "status") return `<td><span class="dsa-status-pill">${escapeHtml(item.status)}</span></td>`;
+    if (column.key === "recordId") return `<td class="dsa-table-id">${escapeHtml(item.recordId)}</td>`;
+    return `<td>${escapeHtml(item[column.key] ?? "")}</td>`;
+}
+
+function bodyRow(item, columns) {
     const actions = item.archived
         ? `<button type="button" class="dsa-mini-btn" data-action="archive" data-id="${escapeHtml(item.id)}">Restore</button>
         <button type="button" class="dsa-mini-btn dsa-danger-mini-btn" data-action="delete" data-id="${escapeHtml(item.id)}">Delete</button>`
         : `<button type="button" class="dsa-mini-btn" data-action="edit" data-id="${escapeHtml(item.id)}">Edit</button>
         <button type="button" class="dsa-mini-btn" data-action="archive" data-id="${escapeHtml(item.id)}">Archive</button>`;
 
+    const cells = columns.map((column) => bodyCell(item, column)).join("");
+
     return `<tr>
-        <td class="dsa-table-id">${escapeHtml(item.recordId)}</td>
-        <td>${escapeHtml(item.name)}</td>
-        <td>${escapeHtml(item.category)}</td>
-        <td><span class="dsa-status-pill">${escapeHtml(item.status)}</span></td>
-        <td class="dsa-table-amount">${peso(item.amount)}</td>
-        <td><time datetime="${escapeHtml(item.date)}">${escapeHtml(item.date)}</time></td>
+        ${cells}
         <td>
             <div class="dsa-row-actions">
                 ${actions}
@@ -48,11 +62,12 @@ function bodyRow(item) {
     </tr>`;
 }
 
-export function recordsTableHtml(records, sortField, sortDir) {
-    const head = COLUMNS.map((column) => headerCell(column, sortField, sortDir)).join("");
-    const body = records.map(bodyRow).join("");
+export function recordsTableHtml(records, { columns, sortField, sortDir, notice = "" }) {
+    const head = columns.map((column) => headerCell(column, sortField, sortDir)).join("");
+    const body = records.map((item) => bodyRow(item, columns)).join("");
+    const noticeHtml = notice ? `<p class="dsa-table-note">${escapeHtml(notice)}</p>` : "";
 
-    return `<div class="dsa-table-scroll">
+    return `${noticeHtml}<div class="dsa-table-scroll">
         <table class="dsa-table">
             <caption class="sr-only">All records in the current view</caption>
             <thead>
