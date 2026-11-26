@@ -267,37 +267,7 @@
 
       <input type="hidden" id="dsaRecordInternalId" />
 
-      <div class="dsa-form-grid">
-        <label class="dsa-field">
-          <span>Record / Order ID</span>
-          <input id="dsaFieldRecordId" type="text" required placeholder="REC-104" />
-        </label>
-
-        <label class="dsa-field">
-          <span>Customer / Brand / Item Name</span>
-          <input id="dsaFieldName" type="text" required placeholder="e.g. Santos Hardware" />
-        </label>
-
-        <label class="dsa-field">
-          <span>Category</span>
-          <select id="dsaFieldCategory"></select>
-        </label>
-
-        <label class="dsa-field">
-          <span>Status</span>
-          <select id="dsaFieldStatus"></select>
-        </label>
-
-        <label class="dsa-field">
-          <span>Price / Balance</span>
-          <input id="dsaFieldAmount" type="number" step="0.01" min="0" required placeholder="1250.00" />
-        </label>
-
-        <label class="dsa-field">
-          <span>Date</span>
-          <input id="dsaFieldDate" type="date" required />
-        </label>
-      </div>
+      <div id="dsaRecordFields" class="dsa-form-grid"></div>
 
       <div class="dsa-csv-section" id="dsaCsvSection">
         <div class="dsa-csv-header">

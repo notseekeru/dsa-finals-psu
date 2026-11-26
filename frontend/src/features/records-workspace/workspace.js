@@ -89,12 +89,7 @@ export async function mountRecordsWorkspace(container) {
         closeModalBtn: q("#dsaCloseModalBtn"),
         cancelModalBtn: q("#dsaCancelModalBtn"),
         internalId: q("#dsaRecordInternalId"),
-        fieldRecordId: q("#dsaFieldRecordId"),
-        fieldName: q("#dsaFieldName"),
-        fieldCategory: q("#dsaFieldCategory"),
-        fieldStatus: q("#dsaFieldStatus"),
-        fieldAmount: q("#dsaFieldAmount"),
-        fieldDate: q("#dsaFieldDate"),
+        recordFields: q("#dsaRecordFields"),
         csvSection: q("#dsaCsvSection"),
         browseCsvBtn: q("#dsaBrowseCsvBtn"),
         csvFileInput: q("#dsaCsvFileInput"),
@@ -417,20 +412,12 @@ export async function mountRecordsWorkspace(container) {
         });
         state.categoryFilter = els.categoryFilter?.value || "ALL";
 
-        populateSelectOptions(els.fieldCategory, categories, {
-            selectedValue: els.fieldCategory?.value,
-        });
-
         populateSelectOptions(els.statusFilter, statuses, {
             includeAll: true,
             allLabel: "All Statuses",
             selectedValue: state.statusFilter,
         });
         state.statusFilter = els.statusFilter?.value || "ALL";
-
-        populateSelectOptions(els.fieldStatus, statuses, {
-            selectedValue: els.fieldStatus?.value,
-        });
 
         if (els.dropdownTarget) {
             els.dropdownTarget.value = group;
@@ -636,6 +623,69 @@ export async function mountRecordsWorkspace(container) {
             .join("");
     }
 
+    function inferType(values) {
+        const filled = values.map((value) => String(value ?? "").trim()).filter(Boolean);
+        if (filled.length === 0) return "text";
+        const numeric = filled.filter((value) => /^-?\d+(\.\d+)?$/.test(value.replace(/[,\s₱$]/g, ""))).length;
+        const dates = filled.filter((value) => /^\d{4}-\d{2}-\d{2}/.test(value)).length;
+        if (dates / filled.length >= 0.8) return "date";
+        if (numeric / filled.length >= 0.8) return "number";
+        return "text";
+    }
+
+    function fieldSpecs(record) {
+        const selected = selectedDataset();
+        const items = client.getItems();
+        const columns = selected ? (selected.columns ?? []) : CORE_COLUMNS.map((column) => column.key);
+        return columns.filter(Boolean).map((column) => {
+            const values = items.map((item) => item.data?.[column] ?? item[column] ?? "");
+            const type = inferType(values);
+            const distinct = [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))];
+            const value = record ? String(record.data?.[column] ?? record[column] ?? "") : type === "date" ? new Date().toISOString().slice(0, 10) : "";
+            const label = CORE_COLUMNS.find((entry) => entry.key.toLowerCase() === column.toLowerCase())?.label ?? column;
+            return { column, label, type, value, suggestions: type === "text" && distinct.length <= 8 ? distinct : [] };
+        });
+    }
+
+    function renderRecordFields(record = null) {
+        if (!els.recordFields) return;
+        els.recordFields.innerHTML = fieldSpecs(record)
+            .map((spec, index) => {
+                const listId = `dsaFieldList${index}`;
+                const listAttr = spec.suggestions.length > 0 ? ` list="${listId}"` : "";
+                const datalist = spec.suggestions.length > 0 ? `<datalist id="${listId}">${spec.suggestions.map((value) => `<option value="${escapeHtml(value)}"></option>`).join("")}</datalist>` : "";
+                const step = spec.type === "number" ? ' step="any"' : "";
+                return `<label class="dsa-field"><span>${escapeHtml(spec.label)}</span><input data-column="${escapeHtml(spec.column)}" type="${spec.type}"${step} value="${escapeHtml(spec.value)}"${listAttr} />${datalist}</label>`;
+            })
+            .join("");
+    }
+
+    function deriveCore(values) {
+        const keys = Object.keys(values);
+        const firstFilled = (patterns) => {
+            const key = keys.find((name) => patterns.some((pattern) => name.toLowerCase().includes(pattern)) && String(values[name]).trim() !== "");
+            return key ? String(values[key]).trim() : "";
+        };
+        const numericKey = keys.find((key) =>
+            /^-?\d+(\.\d+)?$/.test(
+                String(values[key])
+                    .trim()
+                    .replace(/[,\s₱$]/g, ""),
+            ),
+        );
+        const dateKey = keys.find((key) => /^\d{4}-\d{2}-\d{2}/.test(String(values[key]).trim()));
+        const recordId = firstFilled(["id", "code", "sku"]);
+        const name = firstFilled(["name", "item", "product", "title"]);
+        return {
+            recordId: recordId || name || `REC-${Date.now().toString().slice(-6)}`,
+            name: name || recordId || "Record",
+            category: firstFilled(["category", "type", "group", "department"]),
+            status: firstFilled(["status", "state"]),
+            amount: numericKey ? Number(String(values[numericKey]).replace(/[^0-9.-]+/g, "")) || 0 : 0,
+            date: dateKey ? String(values[dateKey]).trim().slice(0, 10) : "",
+        };
+    }
+
     function openModal(record = null) {
         syncDropdownUIs(els.dropdownMsg?.textContent || "");
         resetCsvImporter();
@@ -644,20 +694,14 @@ export async function mountRecordsWorkspace(container) {
             els.modalTitle.textContent = "Edit Record";
             if (els.csvSection) els.csvSection.hidden = true;
             els.internalId.value = record.id;
-            els.fieldRecordId.value = record.recordId;
-            els.fieldName.value = record.name;
-            els.fieldCategory.value = record.category;
-            els.fieldStatus.value = record.status;
-            els.fieldAmount.value = record.amount;
-            els.fieldDate.value = record.date;
+            renderRecordFields(record);
         } else {
             els.modalTitle.textContent = "Add Record";
             if (els.csvSection) els.csvSection.hidden = false;
             els.recordForm.reset();
             syncDropdownUIs(els.dropdownMsg?.textContent || "");
             els.internalId.value = "";
-            els.fieldRecordId.value = `REC-${100 + client.getItems().length + 1}`;
-            els.fieldDate.value = new Date().toISOString().slice(0, 10);
+            renderRecordFields();
         }
         if (typeof els.modal.showModal === "function") els.modal.showModal();
         else els.modal.setAttribute("open", "");
@@ -929,23 +973,15 @@ export async function mountRecordsWorkspace(container) {
         "submit",
         handleAction(async (e) => {
             e.preventDefault();
-            if (!state.datasetId) {
-                state.statusText = "Select a file before saving a record.";
-                els.statusBar.textContent = state.statusText;
-                return;
-            }
             const existingId = els.internalId.value.trim();
             const existing = existingId ? client.getItems().find((item) => item.id === existingId) : null;
+            const values = {};
+            for (const input of els.recordFields.querySelectorAll("[data-column]")) values[input.dataset.column] = input.value;
             const record = {
-                recordId: els.fieldRecordId.value.trim(),
-                name: els.fieldName.value.trim(),
-                category: els.fieldCategory.value,
-                status: els.fieldStatus.value,
-                amount: Number(els.fieldAmount.value) || 0,
-                date: els.fieldDate.value,
+                ...deriveCore(values),
                 archived: existing?.archived ?? false,
                 datasetId: existing?.datasetId ?? state.datasetId,
-                data: existing?.data ?? {},
+                data: values,
             };
             if (existingId) record.id = existingId;
             await client.saveItem(record, Boolean(existingId));
