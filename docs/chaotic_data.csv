@@ -1,0 +1,23 @@
+Emp_ID ,"Full Name (Last, First)",Dept / Team,Date Hired,Monthly_Salary,Status,Email Address,Contact #,Notes / Misc
+EMP-104,"  del Rosario, Maria Clara ",Sales & Mktg,11/03/2023,"PHP 45,000.00",Active,mariaclara@company.com,0917-555-0192,Transferred from Cebu branch; check Q3 quota
+102,Juan Dela Cruz,IT / Tech Support,2022-08-15,52000,active,jdelacruz@company.com,+63 918 555 0144,
+EMP_099,"SANTOS, MARK ANTHONY",finance,"March 5, 2021","₱68,500",ACTIVE,msantos@company,9175550188,Missing TIN number!!
+,Ana Reyes-Gomez,Human Resources,05/19/2024,"38,000 php",Probationary,areyes@company.com,N/A,probation ends Nov 2024? verify w/ HR
+EMP-104,Maria Clara del Rosario,Sales,2023-11-03,45000.00,Active,mariaclara@company.com,09175550192,DUPLICATE ENTRY - DO NOT PAY TWICE
+EMP-115,"bautista, josephine",Operations ,2020/12/01,"$1,200.00",Resigned (2024),jbautista@gmail.com,0920-555-0111,Left laptop at reception; clearance pending
+N/A,TBD - New Hire,Marketing,ASAP,TBD,Pending,,,Req #4092 approved by Sir Bong
+EMP-108,Kevin O'Connor,Logistics & Warehouse,14-02-2023,"41,250.5",On Leave,k.oconnor@company.com,0917 555 0133,Maternity/Paternity leave - back next month
+110,"Villanueva, Carlo",IT,2023-07-30,55000,1,cvillanueva@company.com,(02) 8555-0199,Admin access granted
+EMP-112," Mendoza ,  Liza ",Finance & Acctg,09-22-2022,61000.00,0,lmendoza@company.com,0919-555-0177,Terminated? Or transferred? Check email
+EMP-119,"Reyes, Jose ""Jojo"" Jr.",Sales,2024-01-10,"42,000",Active,jojo.reyes@company.com,0917-555-0166,"Comma, and ""quotes"" in notes, breaks old parser"
+SUBTOTAL,,,,"497,750.50",,,,Manual sum from Q2 spreadsheet - DO NOT IMPORT
+EMP-121,"Lim, Catherine",Admin,2021-06-18,39500,Active,clim@company.com,09185550122,
+EMP-122,"Garcia, Roberto",Operations,31/04/2023,47000,Active,rgarcia@company.com,0917-555-0155,Invalid date April 31 in old system
+EMP-102,Juan D. Cruz,Tech Support,15/08/2022,"52,000.00",Active,jdelacruz@company.com,0918-555-0144,Promoted to Senior Tech?
+,,,,,,,,
+EMP-125,"Tan, Michelle",HR,2023-09-12,-5000,Active,mtan@company.com,0917-555-0100,Salary deduction adjustment
+EMP-126,"Aquino, Paolo",Sales & Marketing,2024-02-29,48000,A,paquino@company.com,0922-555-0181,Leap year hire
+EMP-127,"Fernandez, Sofia",Customer Service,2022-11-11,36500,Active,sfernandez@company.com ,0917-555-0149,Trailing space in email
+EMP-128,"Dizon, Rafael",Logistics,2023-04-05,"43,000",inactive,rdizon@company.com,0919-555-0123,AWOL since Oct
+TOTAL,,,,"831,750.50",,,,Grand total (includes duplicates & subtotals lol)
+

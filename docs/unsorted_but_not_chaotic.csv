@@ -1,0 +1,51 @@
+employee_id,first_name,last_name,email,department,role,office,hire_date,monthly_salary_php,status
+EMP-1017,Jose,Navarro,jose.navarro@company.com,Sales,Account Executive,Remote,2021-11-14,130000,Active
+EMP-1016,Bianca,Rivera,bianca.rivera@company.com,Customer Support,Customer Success Manager,BGC,2021-09-16,47500,Active
+EMP-1037,Eduardo,Rodriguez,eduardo.rodriguez@company.com,Marketing,Digital Marketing Specialist,Makati,2025-05-26,107500,Active
+EMP-1034,Trisha,Gonzalez,trisha.gonzalez@company.com,Product,Product Manager,Clark,2021-05-15,72500,Active
+EMP-1027,Paolo,Sy,paolo.sy@company.com,Operations,Supply Chain Analyst,Ortigas,2026-02-08,70000,Active
+EMP-1021,Luis,Castro,luis.castro@company.com,Marketing,Brand Manager,Makati,2023-11-17,130000,Active
+EMP-1011,Diego,Castillo,diego.castillo@company.com,Sales,Regional Sales Lead,Remote,2021-09-24,72500,Active
+EMP-1006,Mia,Garcia,mia.garcia@company.com,Sales,Sales Representative,Makati,2024-06-20,75000,Active
+EMP-1032,Bea,Perez,bea.perez@company.com,Customer Support,Customer Success Manager,Clark,2025-08-28,42500,Probationary
+EMP-1044,Jasmine,Velasco,jasmine.velasco@company.com,Product,UX Designer,Makati,2019-08-20,125000,Active
+EMP-1025,Ramon,Tan,ramon.tan@company.com,Product,Product Analyst,BGC,2023-09-28,130000,Active
+EMP-1015,Carlos,Aquino,carlos.aquino@company.com,Human Resources,HR Generalist,BGC,2023-12-19,102500,On Leave
+EMP-1013,Miguel,Villanueva,miguel.villanueva@company.com,Engineering,DevOps Engineer,Clark,2023-02-07,125000,Probationary
+EMP-1033,Alfonso,Fernandez,alfonso.fernandez@company.com,Sales,Account Executive,Clark,2024-02-08,65000,Active
+EMP-1019,Marco,Mercado,marco.mercado@company.com,Sales,Regional Sales Lead,Ortigas,2023-11-11,52500,Active
+EMP-1023,Antonio,Pascual,antonio.pascual@company.com,Sales,Sales Representative,Cebu,2022-01-08,125000,Active
+EMP-1042,Danica,Laxamana,danica.laxamana@company.com,Sales,Sales Representative,Remote,2024-05-07,140000,Probationary
+EMP-1014,Hannah,Ramos,hannah.ramos@company.com,Operations,Operations Coordinator,Remote,2026-07-21,107500,Active
+EMP-1018,Andrea,Salazar,andrea.salazar@company.com,Customer Support,Customer Success Manager,Ortigas,2026-09-09,122500,Active
+EMP-1030,Denise,Dizon,denise.dizon@company.com,Human Resources,HR Business Partner,Clark,2022-09-05,125000,On Leave
+EMP-1004,Isabella,Bautista,isabella.bautista@company.com,Customer Support,Support Specialist,Clark,2023-01-25,60000,Probationary
+EMP-1038,Camille,Sanchez,camille.sanchez@company.com,Customer Support,Technical Support Tier 2,Remote,2026-03-07,80000,Active
+EMP-1043,Ricardo,Manalo,ricardo.manalo@company.com,Operations,Operations Coordinator,Cebu,2025-03-22,137500,Active
+EMP-1022,Clarissa,Morales,clarissa.morales@company.com,Marketing,Digital Marketing Specialist,BGC,2019-10-11,112500,Active
+EMP-1007,Rafael,Mendoza,rafael.mendoza@company.com,Product,Product Analyst,Makati,2025-02-18,80000,Probationary
+EMP-1031,Lorenzo,Soriano,lorenzo.soriano@company.com,Product,Product Manager,Clark,2025-04-04,50000,Probationary
+EMP-1002,Sofia,Santos,sofia.santos@company.com,Sales,Regional Sales Lead,Remote,2020-10-14,40000,Active
+EMP-1040,Alyssa,David,alyssa.david@company.com,Marketing,Content Strategist,Ortigas,2020-03-03,130000,Active
+EMP-1026,Angela,Chua,angela.chua@company.com,Finance,Payroll Specialist,Remote,2022-12-10,97500,Probationary
+EMP-1049,Victor,Aguilar,victor.aguilar@company.com,Human Resources,HR Business Partner,Clark,2023-01-03,135000,Active
+EMP-1012,Valeria,Flores,valeria.flores@company.com,Product,UX Designer,Cebu,2022-11-11,42500,Active
+EMP-1020,Patricia,Dela Cruz,patricia.delacruz@company.com,Customer Support,Support Specialist,Clark,2019-12-24,75000,On Leave
+EMP-1039,Fernando,Ramirez,fernando.ramirez@company.com,Engineering,Software Engineer,Remote,2024-01-02,127500,Active
+EMP-1009,Daniel,Tomas,daniel.tomas@company.com,Sales,Account Executive,Makati,2025-05-15,135000,Active
+EMP-1047,Emilio,Estrada,emilio.estrada@company.com,Engineering,DevOps Engineer,Remote,2020-03-09,52500,Active
+EMP-1041,Martin,Pangilinan,martin.pangilinan@company.com,Finance,Accountant,Makati,2022-10-20,40000,On Leave
+EMP-1045,Andres,Corpuz,andres.corpuz@company.com,Sales,Regional Sales Lead,BGC,2023-03-12,45000,Active
+EMP-1024,Nicole,Lim,nicole.lim@company.com,Sales,Regional Sales Lead,Clark,2020-09-25,55000,Active
+EMP-1003,Gabriel,Cruz,gabriel.cruz@company.com,Sales,Account Executive,BGC,2019-09-07,137500,Probationary
+EMP-1035,Javier,Gomez,javier.gomez@company.com,Product,Product Analyst,Makati,2019-11-18,35000,Active
+EMP-1010,Elena,Andrada,elena.andrada@company.com,Marketing,Digital Marketing Specialist,Cebu,2022-11-09,145000,Probationary
+EMP-1005,Lucas,Ocampo,lucas.ocampo@company.com,Customer Support,Customer Success Manager,Cebu,2021-04-25,87500,Active
+EMP-1008,Camila,Torres,camila.torres@company.com,Operations,Logistics Manager,BGC,2020-01-22,70000,Active
+EMP-1001,Mateo,Reyes,mateo.reyes@company.com,Sales,Account Executive,Remote,2023-04-08,55000,Probationary
+EMP-1050,Katrina,Miranda,katrina.miranda@company.com,Human Resources,HR Generalist,Makati,2024-03-21,75000,Active
+EMP-1028,Katherine,Go,katherine.go@company.com,Operations,Operations Coordinator,Ortigas,2022-10-08,35000,Active
+EMP-1046,Erica,Cabrera,erica.cabrera@company.com,Operations,Supply Chain Analyst,BGC,2026-09-23,82500,On Leave
+EMP-1036,Monica,Lopez,monica.lopez@company.com,Finance,Financial Analyst,Clark,2026-08-07,97500,Active
+EMP-1029,Enrique,Ong,enrique.ong@company.com,Engineering,QA Analyst,Makati,2019-06-03,115000,Active
+EMP-1048,Samantha,Valdez,samantha.valdez@company.com,Marketing,Digital Marketing Specialist,Cebu,2022-12-11,67500,Probationary
