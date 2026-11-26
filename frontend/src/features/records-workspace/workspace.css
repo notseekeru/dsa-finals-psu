@@ -50,6 +50,10 @@
     flex-shrink: 0;
 }
 
+.dsa-brand-title span {
+    color: var(--accent-dark);
+}
+
 .dsa-search-wrap {
     position: relative;
     flex: 1;
@@ -339,6 +343,10 @@
     display: flex;
     flex-direction: column;
     gap: 0.55rem;
+}
+
+.dsa-records-grid.is-table {
+    display: block;
 }
 
 .dsa-empty-state {
@@ -699,6 +707,159 @@
     border-color: #f3d6d8;
 }
 
+.dsa-section-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.dsa-kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.dsa-kpi-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.9rem 1rem;
+    background: var(--white);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+}
+
+.dsa-kpi-label {
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.dsa-kpi-value {
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--secondary);
+}
+
+.dsa-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.dsa-chart-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    min-width: 0;
+    padding: 0.9rem 1rem;
+    background: var(--white);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+}
+
+.dsa-panel-title {
+    margin: 0;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.dsa-chart-canvas {
+    position: relative;
+    height: 220px;
+}
+
+.dsa-panel-empty {
+    margin: 0;
+    padding: 1.5rem 0.5rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.dsa-activity-panel {
+    grid-column: 1 / -1;
+}
+
+.dsa-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.dsa-table th,
+.dsa-table td {
+    padding: 0.55rem 0.75rem;
+    text-align: left;
+    border-bottom: var(--border-width) solid var(--border);
+    white-space: nowrap;
+}
+
+.dsa-table th {
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.dsa-table-scroll {
+    max-height: 60vh;
+    overflow: auto;
+    background: var(--white);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+.dsa-table-scroll .dsa-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.dsa-table-id {
+    color: var(--muted);
+}
+
+.dsa-table-amount {
+    font-variant-numeric: tabular-nums;
+}
+
+.dsa-sort-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+}
+
+.dsa-sort-btn.is-active {
+    color: var(--secondary);
+}
+
+.dsa-sort-arrow {
+    font-size: 0.7rem;
+}
+
+.dsa-row-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.25rem;
+}
+
 .dsa-filter-drawer[hidden],
 .dsa-suggested-grid[hidden],
 .dsa-records-grid[hidden],
@@ -719,5 +880,22 @@
     .dsa-main {
         border-left: 0;
         border-top-left-radius: 0;
+    }
+
+    .dsa-kpi-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dsa-chart-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dsa-chart-canvas {
+        height: 200px;
+    }
+
+    .dsa-table th,
+    .dsa-table td {
+        padding: 0.5rem 0.6rem;
     }
 }

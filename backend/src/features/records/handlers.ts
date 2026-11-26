@@ -5,6 +5,7 @@ import { pool } from "../../shared/db.js";
 import { findUserByToken, sessionToken } from "../auth/session.js";
 import { type BusinessRecord, SEARCH_ALGORITHMS, SORT_DIRECTIONS, SORT_FIELDS } from "./dataTypes.js";
 import { binarySearchExactRecord, insertionSortRecords, linearSearchRecords } from "./dsa.js";
+import { fetchRecordStats } from "./stats.js";
 
 interface RecordRow {
     id: string;
@@ -37,6 +38,12 @@ function readEnum<T extends string>(raw: unknown, allowed: readonly T[], fallbac
 
 const badEnum = (c: Context, name: string, allowed: readonly string[]) => c.json({ error: `${name} must be one of: ${allowed.join(", ")}` }, 400);
 
+const DATE_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
+
+const badDate = (raw: unknown) => raw !== undefined && raw !== null && raw !== "" && !(typeof raw === "string" && DATE_SHAPE.test(raw));
+
+const dateError = (c: Context) => c.json({ error: "Date must be YYYY-MM-DD", field: "date" }, 400);
+
 async function fetchAllRecords(userId: string): Promise<BusinessRecord[]> {
     const { rows } = await pool.query<RecordRow>("SELECT id, record_id, name, category, status, amount, date, archived FROM records WHERE user_id = $1 ORDER BY created_at ASC", [userId]);
     return rows.map(toRecordDto);
@@ -64,8 +71,13 @@ records.get("/", async (c) => {
     return c.json({ records: items, metrics });
 });
 
+records.get("/stats", async (c) => {
+    return c.json(await fetchRecordStats(c.get("userId")));
+});
+
 records.post("/", async (c) => {
     const body = await c.req.json<Partial<BusinessRecord>>();
+    if (badDate(body.date)) return dateError(c);
     const userId = c.get("userId");
     const id = randomUUID();
 
@@ -95,6 +107,7 @@ records.put("/:id", async (c) => {
     const id = c.req.param("id");
     const userId = c.get("userId");
     const patch = await c.req.json<Partial<BusinessRecord>>();
+    if (badDate(patch.date)) return dateError(c);
     const client = await pool.connect();
     let merged: BusinessRecord;
     try {

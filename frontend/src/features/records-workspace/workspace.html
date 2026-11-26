@@ -1,8 +1,8 @@
-<section class="dsa-drive-shell" aria-label="DSA Records Workspace">
+<section class="dsa-drive-shell" aria-label="DataSpace Workspace">
   <header class="dsa-topbar">
     <div class="dsa-brand">
       <span class="dsa-brand-mark" aria-hidden="true"></span>
-      <span class="dsa-brand-title">DataDrive</span>
+      <span class="dsa-brand-title">Data<span>Space</span></span>
     </div>
 
     <div class="dsa-search-wrap">
@@ -152,7 +152,7 @@
     <main class="dsa-main">
       <div class="dsa-main-header">
         <div>
-          <h1 id="dsaWorkspaceTitle" class="dsa-page-title">DataDrive</h1>
+          <h1 id="dsaWorkspaceTitle" class="dsa-page-title">DataSpace</h1>
           <p id="dsaWorkspaceSubtitle" class="dsa-page-subtitle">
             Business Record Management
           </p>
@@ -169,6 +169,9 @@
             aria-pressed="true"
           >
             Grid
+          </button>
+          <button id="dsaTableViewBtn" class="dsa-view-btn" type="button" aria-pressed="false">
+            Table
           </button>
         </div>
       </div>
@@ -190,6 +193,77 @@
           <span class="dsa-section-hint">Leading entries in sorted order</span>
         </div>
         <div id="dsaSuggestedRow" class="dsa-suggested-grid"></div>
+      </section>
+
+      <section id="dsaDashboard" class="dsa-section" aria-labelledby="dsaDashboardHeading">
+        <div class="dsa-section-header">
+          <h2 id="dsaDashboardHeading" class="dsa-section-title">Business snapshot</h2>
+          <span class="dsa-section-hint">Totals across every record</span>
+        </div>
+
+        <div class="dsa-kpi-strip">
+          <article class="dsa-kpi-card">
+            <span class="dsa-kpi-label">Records</span>
+            <span id="dsaKpiRecords" class="dsa-kpi-value">0</span>
+          </article>
+          <article class="dsa-kpi-card">
+            <span class="dsa-kpi-label">Archived</span>
+            <span id="dsaKpiArchived" class="dsa-kpi-value">0</span>
+          </article>
+          <article class="dsa-kpi-card">
+            <span class="dsa-kpi-label">Total amount</span>
+            <span id="dsaKpiAmount" class="dsa-kpi-value">₱0.00</span>
+          </article>
+          <article class="dsa-kpi-card">
+            <span class="dsa-kpi-label">Categories in use</span>
+            <span id="dsaKpiCategories" class="dsa-kpi-value">0</span>
+          </article>
+        </div>
+
+        <div class="dsa-chart-grid">
+          <article class="dsa-chart-panel">
+            <h3 class="dsa-panel-title">Records by category</h3>
+            <div class="dsa-chart-canvas">
+              <canvas id="dsaCategoryChart" role="img" aria-label="Records by category"></canvas>
+            </div>
+            <p id="dsaCategoryChartEmpty" class="dsa-panel-empty" hidden></p>
+          </article>
+
+          <article class="dsa-chart-panel">
+            <h3 class="dsa-panel-title">Records over 12 months</h3>
+            <div class="dsa-chart-canvas">
+              <canvas id="dsaMonthlyChart" role="img" aria-label="Records over the last 12 months"></canvas>
+            </div>
+            <p id="dsaMonthlyChartEmpty" class="dsa-panel-empty" hidden></p>
+          </article>
+
+          <article class="dsa-chart-panel">
+            <h3 class="dsa-panel-title">Status split</h3>
+            <div class="dsa-chart-canvas">
+              <canvas id="dsaStatusChart" role="img" aria-label="Records by status"></canvas>
+            </div>
+            <p id="dsaStatusChartEmpty" class="dsa-panel-empty" hidden></p>
+          </article>
+
+          <article class="dsa-chart-panel dsa-activity-panel">
+            <h3 class="dsa-panel-title">Latest activity</h3>
+            <table id="dsaActivityTable" class="dsa-table">
+              <caption class="sr-only">Five most recent records</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Record</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Amount</th>
+                  <th scope="col">Date</th>
+                </tr>
+              </thead>
+              <tbody id="dsaActivityBody"></tbody>
+            </table>
+            <p id="dsaActivityEmpty" class="dsa-panel-empty" hidden></p>
+          </article>
+        </div>
       </section>
 
       <section class="dsa-section" aria-labelledby="dsaRecordsHeading">

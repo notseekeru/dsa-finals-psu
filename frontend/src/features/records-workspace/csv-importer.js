@@ -17,6 +17,8 @@ export function parseCsvText(csvText) {
     let currentRow = [];
     let currentField = "";
     let inQuotes = false;
+    let line = 1;
+    let quoteLine = 1;
 
     for (let i = 0; i < input.length; i++) {
         const ch = input[i];
@@ -29,10 +31,12 @@ export function parseCsvText(csvText) {
             } else if (ch === '"') {
                 inQuotes = false;
             } else {
+                if (ch === "\n") line++;
                 currentField += ch;
             }
         } else if (ch === '"') {
             inQuotes = true;
+            quoteLine = line;
         } else if (ch === ",") {
             currentRow.push(currentField.trim());
             currentField = "";
@@ -42,14 +46,20 @@ export function parseCsvText(csvText) {
             currentRow = [];
             currentField = "";
             i++;
+            line++;
         } else if (ch === "\n" || ch === "\r") {
             currentRow.push(currentField.trim());
             rows.push(currentRow);
             currentRow = [];
             currentField = "";
+            line++;
         } else {
             currentField += ch;
         }
+    }
+
+    if (inQuotes) {
+        return { headers: [], recordsRaw: [], duplicateHeaders: [], error: `Unterminated quoted field opened on line ${quoteLine}.` };
     }
 
     if (currentField.length > 0 || currentRow.length > 0) {
@@ -59,21 +69,34 @@ export function parseCsvText(csvText) {
 
     const nonEmptyRows = rows.filter((r) => r.some((cell) => cell !== ""));
     if (nonEmptyRows.length === 0) {
-        return { headers: [], recordsRaw: [] };
+        return { headers: [], recordsRaw: [], duplicateHeaders: [] };
     }
 
-    const headers = nonEmptyRows[0].map((h, idx) => h || `Column ${idx + 1}`);
+    const headers = [];
+    const headerIndexes = [];
+    const duplicateHeaders = [];
+
+    nonEmptyRows[0].forEach((raw, idx) => {
+        const label = raw || `Column ${idx + 1}`;
+        if (headers.some((h) => normalizeKey(h) === normalizeKey(label))) {
+            duplicateHeaders.push(label);
+            return;
+        }
+        headers.push(label);
+        headerIndexes.push(idx);
+    });
+
     const dataRows = nonEmptyRows.slice(1);
 
     const recordsRaw = dataRows.map((cells) => {
         const obj = {};
-        headers.forEach((h, idx) => {
-            obj[h] = cells[idx] ?? "";
+        headers.forEach((h, i) => {
+            obj[h] = cells[headerIndexes[i]] ?? "";
         });
         return obj;
     });
 
-    return { headers, recordsRaw };
+    return { headers, recordsRaw, duplicateHeaders };
 }
 
 function normalizeKey(str) {
@@ -208,14 +231,23 @@ export function detectRowStatus(rowObj, availableStatuses = []) {
 
 export function mapCsvRowsToRecords(recordsRaw, chosenCategory, availableStatuses = [], existingCount = 0) {
     const baseStamp = Date.now();
+    const records = [];
+    const seenRecordIds = new Set();
+    let skippedDuplicates = 0;
 
-    return recordsRaw.map((rowObj, index) => {
+    recordsRaw.forEach((rowObj, index) => {
         const lowerMap = {};
         for (const [k, v] of Object.entries(rowObj)) {
             lowerMap[normalizeKey(k)] = v;
         }
 
         const recordId = pickField(rowObj, lowerMap, ["record id", "recordid", "id", "code", "order id", "sku"]) || `REC-${100 + existingCount + index + 1}`;
+
+        if (seenRecordIds.has(recordId)) {
+            skippedDuplicates++;
+            return;
+        }
+        seenRecordIds.add(recordId);
 
         const name = pickField(rowObj, lowerMap, ["name", "customer", "brand", "item", "title", "client", "product", "company"]) || `Imported Row ${index + 1}`;
 
@@ -225,7 +257,7 @@ export function mapCsvRowsToRecords(recordsRaw, chosenCategory, availableStatuse
 
         const status = detectRowStatus(rowObj, availableStatuses);
 
-        return {
+        records.push({
             id: `${baseStamp}-${index}-${Math.random().toString(36).slice(2, 6)}`,
             recordId,
             name,
@@ -234,6 +266,8 @@ export function mapCsvRowsToRecords(recordsRaw, chosenCategory, availableStatuse
             amount,
             date,
             archived: false,
-        };
+        });
     });
+
+    return { records, skippedDuplicates };
 }

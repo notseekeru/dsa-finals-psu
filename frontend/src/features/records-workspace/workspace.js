@@ -1,20 +1,14 @@
 import { detectCsvCategory, mapCsvRowsToRecords, parseCsvText } from "./csv-importer.js";
+import { renderDashboard } from "./dashboard.js";
 import { addOption, deleteOption, loadDropdownOptions, renameOption, saveDropdownOptions } from "./dropdown-options.js";
+import { escapeHtml } from "./escape.js";
 import { createRecordsClient, searchRecords, sortRecords } from "./records-api.js";
+import { recordsTableHtml, sortRequestFromEvent } from "./records-table.js";
 import "./workspace.css";
 
 const MAX_CAPACITY = 100;
 const MAX_CSV_ROWS = 500;
 const SEARCH_DEBOUNCE_MS = 250;
-
-function escapeHtml(value) {
-    return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-}
 
 function pluralizeCategoryLabel(category) {
     const clean = String(category ?? "").trim();
@@ -84,7 +78,9 @@ export async function mountRecordsWorkspace(container) {
         workspaceTitle: q("#dsaWorkspaceTitle"),
         listViewBtn: q("#dsaListViewBtn"),
         gridViewBtn: q("#dsaGridViewBtn"),
+        tableViewBtn: q("#dsaTableViewBtn"),
         statusBar: q("#dsaStatusBar"),
+        dashboard: q("#dsaDashboard"),
         toggleSuggestedBtn: q("#dsaToggleSuggestedBtn"),
         suggestedRow: q("#dsaSuggestedRow"),
         toggleRecordsBtn: q("#dsaToggleRecordsBtn"),
@@ -118,6 +114,8 @@ export async function mountRecordsWorkspace(container) {
     if (client.isConnected()) {
         els.syncBadge.textContent = "API Connected";
     }
+
+    const refreshDashboard = () => renderDashboard(els.dashboard);
 
     function populateSelectOptions(selectEl, values, { includeAll = false, allLabel = "All", selectedValue = "" } = {}) {
         if (!selectEl) return;
@@ -208,7 +206,12 @@ export async function mountRecordsWorkspace(container) {
         const reader = new FileReader();
         reader.onload = () => {
             const text = String(reader.result ?? "");
-            const { headers, recordsRaw } = parseCsvText(text);
+            const { headers, recordsRaw, duplicateHeaders, error } = parseCsvText(text);
+            if (error) {
+                if (els.csvFileMeta) els.csvFileMeta.textContent = `${file.name}: ${error}`;
+                if (els.csvReviewBox) els.csvReviewBox.hidden = true;
+                return;
+            }
             if (headers.length === 0 || recordsRaw.length === 0) {
                 if (els.csvFileMeta) {
                     els.csvFileMeta.textContent = `"${file.name}" has no importable data rows.`;
@@ -233,7 +236,7 @@ export async function mountRecordsWorkspace(container) {
             });
 
             if (els.csvFileMeta) {
-                els.csvFileMeta.textContent = `${file.name} (${recordsRaw.length} row${recordsRaw.length === 1 ? "" : "s"})`;
+                els.csvFileMeta.textContent = `${file.name} (${recordsRaw.length} row${recordsRaw.length === 1 ? "" : "s"})${duplicateHeaders.length > 0 ? ` Ignored duplicate header(s): ${duplicateHeaders.join(", ")}.` : ""}`;
             }
             if (els.csvDetectedInfo) {
                 els.csvDetectedInfo.textContent = `Auto-detected: "${detection.detectedCategory}". Change the dropdown below to override.`;
@@ -327,6 +330,7 @@ export async function mountRecordsWorkspace(container) {
 
         syncDropdownUIs();
         render();
+        await refreshDashboard();
     }
 
     function sortStatusText() {
@@ -415,16 +419,21 @@ export async function mountRecordsWorkspace(container) {
         els.capacityText.textContent = `${all.length} / ${MAX_CAPACITY} records`;
         els.complexityMeta.textContent = `Insertion Sort: ${state.metrics.comparisons} comparisons · ${state.metrics.shifts} shifts`;
 
-        els.workspaceTitle.textContent = state.activeNav === "home" ? "DataDrive" : `DSA Records: ${state.activeNav}`;
+        els.workspaceTitle.textContent = state.activeNav === "home" ? "DataSpace" : `DataSpace: ${state.activeNav}`;
         els.recordCountLabel.textContent = `${visible.length} ${visible.length === 1 ? "record" : "records"}`;
         els.statusBar.textContent = state.statusText;
 
         els.recordsContainer.classList.toggle("is-list", state.viewMode === "list");
-        els.recordsContainer.classList.toggle("dsa-records-grid", state.viewMode === "grid");
-        els.listViewBtn.classList.toggle("is-active", state.viewMode === "list");
-        els.listViewBtn.setAttribute("aria-pressed", String(state.viewMode === "list"));
-        els.gridViewBtn.classList.toggle("is-active", state.viewMode === "grid");
-        els.gridViewBtn.setAttribute("aria-pressed", String(state.viewMode === "grid"));
+        els.recordsContainer.classList.toggle("is-table", state.viewMode === "table");
+
+        for (const [mode, button] of [
+            ["list", els.listViewBtn],
+            ["grid", els.gridViewBtn],
+            ["table", els.tableViewBtn],
+        ]) {
+            button.classList.toggle("is-active", state.viewMode === mode);
+            button.setAttribute("aria-pressed", String(state.viewMode === mode));
+        }
 
         const highlights = all.filter((r) => !r.archived).slice(0, 5);
         els.suggestedRow.innerHTML = highlights
@@ -440,6 +449,11 @@ export async function mountRecordsWorkspace(container) {
 
         if (visible.length === 0) {
             els.recordsContainer.innerHTML = `<div class="dsa-empty-state">No matching records found.</div>`;
+            return;
+        }
+
+        if (state.viewMode === "table") {
+            els.recordsContainer.innerHTML = recordsTableHtml(visible, state.sortField, state.sortDir);
             return;
         }
 
@@ -650,6 +664,7 @@ export async function mountRecordsWorkspace(container) {
             syncDropdownUIs(`Renamed "${oldVal}" to "${newVal}".`);
             if (els.dropdownExistingSelect) els.dropdownExistingSelect.value = newVal;
             render();
+            await refreshDashboard();
         }),
     );
 
@@ -725,12 +740,12 @@ export async function mountRecordsWorkspace(container) {
             const draftRows = state.csvDraft.recordsRaw;
             const rows = draftRows.slice(0, MAX_CSV_ROWS);
             const dropped = draftRows.length - rows.length;
-            const mapped = mapCsvRowsToRecords(rows, chosenCategory, state.dropdownOptions.statuses, client.getItems().length);
+            const { records, skippedDuplicates } = mapCsvRowsToRecords(rows, chosenCategory, state.dropdownOptions.statuses, client.getItems().length);
 
             state.csvImporting = true;
             els.importCsvBtn.disabled = true;
             try {
-                for (const rec of mapped) {
+                for (const rec of records) {
                     await client.saveItem(rec, false);
                 }
             } finally {
@@ -740,8 +755,9 @@ export async function mountRecordsWorkspace(container) {
 
             closeModal();
             await applySort();
-            state.statusText = `Imported ${mapped.length} CSV record(s) under "${chosenCategory}".${dropped > 0 ? ` ${dropped} row(s) exceeded the ${MAX_CSV_ROWS}-row import limit and were skipped.` : ""}`;
+            state.statusText = `Imported ${records.length} CSV record(s) under "${chosenCategory}".${skippedDuplicates > 0 ? ` ${skippedDuplicates} row(s) repeated a record ID already in this file and were skipped.` : ""}${dropped > 0 ? ` ${dropped} row(s) exceeded the ${MAX_CSV_ROWS}-row import limit and were skipped.` : ""}`;
             els.statusBar.textContent = state.statusText;
+            await refreshDashboard();
         }),
     );
 
@@ -762,6 +778,11 @@ export async function mountRecordsWorkspace(container) {
 
     els.gridViewBtn.addEventListener("click", () => {
         state.viewMode = "grid";
+        render();
+    });
+
+    els.tableViewBtn.addEventListener("click", () => {
+        state.viewMode = "table";
         render();
     });
 
@@ -799,12 +820,23 @@ export async function mountRecordsWorkspace(container) {
             await client.saveItem(record, Boolean(existingId));
             closeModal();
             await applySort();
+            await refreshDashboard();
         }),
     );
 
     els.recordsContainer.addEventListener(
         "click",
         handleAction(async (e) => {
+            const sortRequest = sortRequestFromEvent(e, state.sortField, state.sortDir);
+            if (sortRequest) {
+                state.sortField = sortRequest.field;
+                state.sortDir = sortRequest.direction;
+                els.sortField.value = sortRequest.field;
+                els.sortDir.value = sortRequest.direction;
+                await applySort();
+                return;
+            }
+
             const btn = e.target.closest("[data-action]");
             if (!btn) return;
             const target = client.getItems().find((r) => r.id === btn.dataset.id);
@@ -816,16 +848,19 @@ export async function mountRecordsWorkspace(container) {
             } else if (btn.dataset.action === "archive") {
                 await client.saveItem({ ...target, archived: !target.archived }, true);
                 await applySort();
+                await refreshDashboard();
             } else if (btn.dataset.action === "delete") {
                 const confirmed = window.confirm(`Permanently delete "${target.name}" (${target.recordId})? This cannot be undone.`);
                 if (!confirmed) return;
 
                 await client.deleteItem(target.id);
                 await applySort();
+                await refreshDashboard();
             }
         }),
     );
 
     syncDropdownUIs("");
     await applySort();
+    await refreshDashboard();
 }
