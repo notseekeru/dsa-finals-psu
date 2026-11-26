@@ -1,0 +1,155 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+    :root {
+        --paper: #f3eee2;
+        --panel: #fbf8ee;
+        --line: #d5cbb6;
+        --ink: #1b1812;
+        --muted: #6f6757;
+        --accent: #2f6b4f;
+        --amber: #9a5b12;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--paper); }
+    #canvas {
+        position: relative;
+        width: 1100px;
+        height: 1300px;
+        overflow: hidden;
+        background-color: var(--paper);
+        background-image: radial-gradient(circle, rgba(27, 24, 18, 0.11) 1px, transparent 1.3px);
+        background-size: 24px 24px;
+        font-family: Inter, "DejaVu Sans", sans-serif;
+        color: var(--ink);
+    }
+    #wires { position: absolute; inset: 0; z-index: 1; }
+    .step {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 12px 16px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        z-index: 2;
+        box-shadow: 0 1px 0 rgba(27, 24, 18, 0.04);
+    }
+    .hdr {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+    }
+    .idx {
+        font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+        font-size: 10.5px;
+        color: var(--muted);
+    }
+    .title {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        line-height: 18px;
+    }
+    .sub {
+        margin-top: 6px;
+        font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+        font-size: 10.5px;
+        line-height: 15px;
+        color: var(--muted);
+    }
+    .note {
+        position: absolute;
+        font-size: 11.5px;
+        line-height: 1.5;
+        color: var(--muted);
+        z-index: 3;
+    }
+    .note .key {
+        font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+        font-size: 11px;
+        color: var(--ink);
+    }
+</style>
+</head>
+<body>
+<div id="canvas">
+    <svg id="wires" viewBox="0 0 1100 1300" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#2f6b4f" />
+            </marker>
+        </defs>
+        <g fill="none" stroke="#2f6b4f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.9">
+            <path d="M400,212 V244" marker-end="url(#arrow)" />
+            <path d="M400,340 V372" marker-end="url(#arrow)" />
+            <path d="M400,468 V500" marker-end="url(#arrow)" />
+            <path d="M400,596 V628" marker-end="url(#arrow)" />
+            <path d="M400,724 V756" marker-end="url(#arrow)" />
+            <path d="M400,852 V884" marker-end="url(#arrow)" />
+            <path d="M400,980 V1012" marker-end="url(#arrow)" />
+            <path d="M400,1108 V1140" marker-end="url(#arrow)" />
+        </g>
+    </svg>
+
+    <div class="step" style="left:120px; top:120px; width:560px; height:92px;">
+        <div class="hdr"><span class="idx">01</span><span class="title">Open the app</span></div>
+        <div class="sub">router.js mounts the view for location.pathname</div>
+    </div>
+
+    <div class="step" style="left:120px; top:248px; width:560px; height:92px;">
+        <div class="hdr"><span class="idx">02</span><span class="title">Sign up or sign in</span></div>
+        <div class="sub">POST /api/auth/register or /api/auth/login sets the session cookie</div>
+    </div>
+
+    <div class="step" style="left:120px; top:376px; width:560px; height:92px;">
+        <div class="hdr"><span class="idx">03</span><span class="title">Choose a file or import a CSV</span></div>
+        <div class="sub">parseCsv reads the headers and rows in the browser</div>
+    </div>
+
+    <div class="step" style="left:120px; top:504px; width:560px; height:92px;">
+        <div class="hdr"><span class="idx">04</span><span class="title">Review the detected column mapping</span></div>
+        <div class="sub">detectMapping resolves headers to recordId, name, category, status, amount, date</div>
+    </div>
+
+    <div class="step" style="left:120px; top:632px; width:560px; height:92px;">
+        <div class="hdr"><span class="idx">05</span><span class="title">Commit the import</span></div>
+        <div class="sub">POST /api/datasets, then POST /api/records/bulk</div>
+    </div>
+
+    <div class="step" style="left:120px; top:760px; width:560px; height:92px;">
+        <div class="hdr"><span class="idx">06</span><span class="title">View the table</span></div>
+        <div class="sub">sort any column, search, filter by a generated dropdown</div>
+    </div>
+
+    <div class="step" style="left:120px; top:888px; width:560px; height:92px;">
+        <div class="hdr"><span class="idx">07</span><span class="title">Read the dashboard charts</span></div>
+        <div class="sub">the panels choose their own columns from the file</div>
+    </div>
+
+    <div class="step" style="left:120px; top:1016px; width:560px; height:92px;">
+        <div class="hdr"><span class="idx">08</span><span class="title">Add, edit or archive a record</span></div>
+        <div class="sub">POST /api/records, PUT /api/records/:id flips archived</div>
+    </div>
+
+    <div class="step" style="left:120px; top:1144px; width:560px; height:92px;">
+        <div class="hdr"><span class="idx">09</span><span class="title">Delete a whole file</span></div>
+        <div class="sub">DELETE /api/datasets/:id takes its records with it</div>
+    </div>
+
+    <div class="note" style="left:740px; top:500px; width:300px;">
+        columns the six fixed fields do not claim are kept in <span class="key">records.data</span> as jsonb, so the import never drops a header.
+    </div>
+
+    <div class="note" style="left:740px; top:884px; width:300px;">
+        the panels profile the keys in <span class="key">records.data</span> and pick a date, a group and a measure, so the charts follow the file.
+    </div>
+</div>
+</body>
+</html>

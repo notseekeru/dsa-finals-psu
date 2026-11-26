@@ -1,0 +1,199 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+    :root {
+        --paper: #f3eee2;
+        --panel: #fbf8ee;
+        --line: #d5cbb6;
+        --ink: #1b1812;
+        --muted: #6f6757;
+        --accent: #2f6b4f;
+        --amber: #9a5b12;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--paper); }
+    #canvas {
+        position: relative;
+        width: 1400px;
+        height: 1000px;
+        overflow: hidden;
+        background-color: var(--paper);
+        background-image: radial-gradient(circle, rgba(27, 24, 18, 0.11) 1px, transparent 1.3px);
+        background-size: 24px 24px;
+        font-family: Inter, "DejaVu Sans", sans-serif;
+        color: var(--ink);
+    }
+    #wires { position: absolute; inset: 0; z-index: 1; }
+    .lane {
+        position: absolute;
+        font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+        font-size: 10.5px;
+        color: var(--muted);
+        z-index: 3;
+        white-space: nowrap;
+    }
+    .card {
+        position: absolute;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        z-index: 2;
+        box-shadow: 0 1px 0 rgba(27, 24, 18, 0.04);
+    }
+    .thead {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 9px 14px;
+        border-bottom: 1px solid var(--line);
+    }
+    .thead .name {
+        font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        line-height: 17px;
+    }
+    .field {
+        display: grid;
+        grid-template-columns: 100px 1fr 80px;
+        align-items: baseline;
+        gap: 12px;
+        padding: 3px 14px;
+    }
+    .field .col {
+        font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+        font-size: 11.5px;
+        line-height: 15px;
+    }
+    .field .type {
+        font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+        font-size: 10.5px;
+        line-height: 15px;
+        color: var(--muted);
+        text-align: right;
+    }
+    .badge {
+        padding: 0 5px;
+        border: 1px solid rgba(47, 107, 79, 0.42);
+        border-radius: 99px;
+        font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+        font-size: 9.5px;
+        line-height: 13px;
+        color: var(--accent);
+        white-space: nowrap;
+        justify-self: start;
+    }
+    .note {
+        position: absolute;
+        font-size: 11.5px;
+        line-height: 1.5;
+        color: var(--muted);
+        z-index: 3;
+    }
+    .note .key {
+        font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+        font-size: 11px;
+        color: var(--ink);
+    }
+    .legend {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 11.5px;
+        color: var(--muted);
+        z-index: 3;
+    }
+</style>
+</head>
+<body>
+<div id="canvas">
+    <svg id="wires" viewBox="0 0 1400 1000" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#2f6b4f" />
+            </marker>
+            <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#9a5b12" />
+            </marker>
+        </defs>
+        <g fill="none" stroke="#2f6b4f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.85">
+            <path d="M420,180 H756" marker-end="url(#arrow)" />
+            <path d="M420,230 H620 V450 H756" marker-end="url(#arrow)" />
+            <path d="M275,268 V466" marker-end="url(#arrow)" />
+            <path d="M760,510 H700 V562 H564" marker-end="url(#arrow)" />
+        </g>
+        <path d="M560,738 H600" fill="none" stroke="#9a5b12" stroke-width="1.6" stroke-dasharray="4 3" stroke-linecap="round" opacity="0.8" marker-end="url(#arrow-amber)" />
+    </svg>
+
+    <div class="lane" style="left:90px; top:92px;">migrated at boot by migrate.ts</div>
+    <div class="lane" style="left:760px; top:92px;">a dataset is one imported file</div>
+
+    <div class="lane" style="left:560px; top:156px;">1 to many</div>
+    <div class="lane" style="left:630px; top:296px;">1 to many</div>
+    <div class="lane" style="left:287px; top:352px;">1 to many</div>
+    <div class="lane" style="left:606px; top:536px;">1 to many</div>
+
+    <div class="card" style="left:90px; top:140px; width:330px; height:128px;">
+        <div class="thead"><span class="name">users</span></div>
+        <div class="field"><span class="col">id</span><span class="type">uuid</span><span class="badge">pk</span></div>
+        <div class="field"><span class="col">email</span><span class="type">text</span><span class="badge">unique</span></div>
+        <div class="field"><span class="col">password_hash</span><span class="type">text</span></div>
+        <div class="field"><span class="col">created_at</span><span class="type">timestamptz</span></div>
+    </div>
+
+    <div class="card" style="left:760px; top:120px; width:390px; height:150px;">
+        <div class="thead"><span class="name">sessions</span></div>
+        <div class="field"><span class="col">id</span><span class="type">uuid</span><span class="badge">pk</span></div>
+        <div class="field"><span class="col">user_id</span><span class="type">uuid</span><span class="badge">fk users</span></div>
+        <div class="field"><span class="col">token_hash</span><span class="type">text</span><span class="badge">unique</span></div>
+        <div class="field"><span class="col">expires_at</span><span class="type">timestamptz</span></div>
+        <div class="field"><span class="col">created_at</span><span class="type">timestamptz</span></div>
+    </div>
+
+    <div class="card" style="left:760px; top:400px; width:390px; height:150px;">
+        <div class="thead"><span class="name">datasets</span></div>
+        <div class="field"><span class="col">id</span><span class="type">uuid</span><span class="badge">pk</span></div>
+        <div class="field"><span class="col">user_id</span><span class="type">uuid</span><span class="badge">fk users</span></div>
+        <div class="field"><span class="col">name</span><span class="type">text</span></div>
+        <div class="field"><span class="col">columns</span><span class="type">jsonb</span></div>
+        <div class="field"><span class="col">created_at</span><span class="type">timestamptz</span></div>
+    </div>
+
+    <div class="card" style="left:90px; top:470px; width:470px; height:304px;">
+        <div class="thead"><span class="name">records</span></div>
+        <div class="field"><span class="col">id</span><span class="type">text</span><span class="badge">pk</span></div>
+        <div class="field"><span class="col">user_id</span><span class="type">uuid</span><span class="badge">fk users</span></div>
+        <div class="field"><span class="col">dataset_id</span><span class="type">uuid</span><span class="badge">fk datasets</span></div>
+        <div class="field"><span class="col">record_id</span><span class="type">text</span></div>
+        <div class="field"><span class="col">name</span><span class="type">text</span></div>
+        <div class="field"><span class="col">category</span><span class="type">text</span></div>
+        <div class="field"><span class="col">status</span><span class="type">text</span></div>
+        <div class="field"><span class="col">amount</span><span class="type">numeric(12,2)</span></div>
+        <div class="field"><span class="col">date</span><span class="type">text</span></div>
+        <div class="field"><span class="col">archived</span><span class="type">boolean</span></div>
+        <div class="field"><span class="col">data</span><span class="type">jsonb</span></div>
+        <div class="field"><span class="col">created_at</span><span class="type">timestamptz</span></div>
+    </div>
+
+    <div class="note" style="left:604px; top:720px; width:250px;">
+        <span class="key">records.data</span> holds every imported column, which is why the app is column agnostic.
+    </div>
+
+    <div class="note" style="left:90px; top:796px; width:470px;">
+        deleting a user cascades to sessions, datasets and records; deleting a dataset cascades to its records.
+    </div>
+
+    <div class="lane" style="left:760px; top:780px;">keys</div>
+    <div class="legend" style="left:760px; top:806px;"><span class="badge">pk</span><span>primary key</span></div>
+    <div class="legend" style="left:760px; top:832px;"><span class="badge">fk users</span><span>foreign key, cascade on delete</span></div>
+    <div class="legend" style="left:760px; top:858px;"><span class="badge">unique</span><span>no two rows share the value</span></div>
+</div>
+</body>
+</html>

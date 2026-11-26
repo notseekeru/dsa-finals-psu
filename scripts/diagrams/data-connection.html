@@ -1,0 +1,199 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+    :root {
+        --paper: #f3eee2;
+        --panel: #fbf8ee;
+        --line: #d5cbb6;
+        --ink: #1b1812;
+        --muted: #6f6757;
+        --accent: #2f6b4f;
+        --amber: #9a5b12;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--paper); }
+    #canvas {
+        position: relative;
+        width: 1200px;
+        height: 820px;
+        overflow: hidden;
+        background-color: var(--paper);
+        background-image: radial-gradient(circle, rgba(27, 24, 18, 0.11) 1px, transparent 1.3px);
+        background-size: 24px 24px;
+        font-family: Inter, "DejaVu Sans", sans-serif;
+        color: var(--ink);
+    }
+    #wires { position: absolute; inset: 0; z-index: 1; }
+    .zone {
+        position: absolute;
+        border: 1.5px dashed rgba(27, 24, 18, 0.24);
+        border-radius: 12px;
+        z-index: 0;
+    }
+    .zone-label {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        height: 24px;
+        padding: 0 10px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 99px;
+        z-index: 3;
+    }
+    .zone-label .tag {
+        font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+        font-size: 10.5px;
+        color: var(--ink);
+    }
+    .zone-label .sub { font-size: 11px; color: var(--muted); }
+    .lane {
+        position: absolute;
+        font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+        font-size: 10.5px;
+        color: var(--muted);
+        z-index: 3;
+        white-space: nowrap;
+    }
+    .node {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 11px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        z-index: 2;
+        box-shadow: 0 1px 0 rgba(27, 24, 18, 0.04);
+    }
+    .title {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        line-height: 17px;
+    }
+    .title.code {
+        font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+        font-size: 12.5px;
+        font-weight: 500;
+    }
+    .sub {
+        margin-top: 6px;
+        font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+        font-size: 10px;
+        line-height: 14px;
+        color: var(--muted);
+    }
+</style>
+</head>
+<body>
+<div id="canvas">
+    <svg id="wires" viewBox="0 0 1200 820" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#2f6b4f" />
+            </marker>
+            <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#9a5b12" />
+            </marker>
+        </defs>
+        <g fill="none" stroke="#2f6b4f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.85">
+            <path d="M162,198 H194" marker-end="url(#arrow)" />
+            <path d="M330,198 H362" marker-end="url(#arrow)" />
+            <path d="M498,198 H530" marker-end="url(#arrow)" />
+            <path d="M666,198 H698" marker-end="url(#arrow)" />
+            <path d="M834,198 H866" marker-end="url(#arrow)" />
+            <path d="M1002,198 H1034" marker-end="url(#arrow)" />
+            <path d="M300,408 H336" marker-end="url(#arrow)" />
+            <path d="M590,408 H626" marker-end="url(#arrow)" />
+            <path d="M930,408 H966" marker-end="url(#arrow)" />
+            <path d="M270,672 H306" marker-end="url(#arrow)" />
+            <path d="M530,672 H566" marker-end="url(#arrow)" />
+            <path d="M850,672 H886" marker-end="url(#arrow)" />
+        </g>
+        <path d="M768,246 V292" fill="none" stroke="#9a5b12" stroke-width="1.6" stroke-dasharray="4 3" stroke-linecap="round" opacity="0.8" marker-end="url(#arrow-amber)" />
+    </svg>
+
+    <div class="lane" style="left:30px; top:116px;">one request, left to right</div>
+    <div class="lane" style="left:778px; top:262px;">checked before the query</div>
+
+    <div class="node" style="left:30px; top:150px; width:132px; height:96px;">
+        <div class="title">browser event</div>
+        <div class="sub">click, submit, keyup</div>
+    </div>
+    <div class="node" style="left:198px; top:150px; width:132px; height:96px;">
+        <div class="title code">workspace.js</div>
+        <div class="sub">reads the DOM, holds the state</div>
+    </div>
+    <div class="node" style="left:366px; top:150px; width:132px; height:96px;">
+        <div class="title code">records-api.js</div>
+        <div class="sub">one client per mounted page</div>
+    </div>
+    <div class="node" style="left:534px; top:150px; width:132px; height:96px;">
+        <div class="title code">shared/api.js</div>
+        <div class="sub">the only caller of /api</div>
+    </div>
+    <div class="node" style="left:702px; top:150px; width:132px; height:96px;">
+        <div class="title">Hono handler</div>
+        <div class="sub">/api/records, /api/datasets</div>
+    </div>
+    <div class="node" style="left:870px; top:150px; width:132px; height:96px;">
+        <div class="title code">pg pool</div>
+        <div class="sub">Pool, max 10, 2s timeouts</div>
+    </div>
+    <div class="node" style="left:1038px; top:150px; width:132px; height:96px;">
+        <div class="title">Postgres</div>
+        <div class="sub">records, datasets, users, sessions</div>
+    </div>
+
+    <div class="zone" style="left:30px; top:296px; width:1140px; height:200px;"></div>
+    <div class="zone-label" style="left:46px; top:284px;"><span class="tag">session check</span><span class="sub">every protected route</span></div>
+    <div class="lane" style="left:60px; top:322px;">the session cookie is checked before any query runs</div>
+
+    <div class="node" style="left:60px; top:352px; width:240px; height:112px;">
+        <div class="title code">session cookie</div>
+        <div class="sub">httpOnly, sameSite Lax, path /</div>
+    </div>
+    <div class="node" style="left:340px; top:352px; width:250px; height:112px;">
+        <div class="title code">requireUser</div>
+        <div class="sub">middleware on /api/records and /api/datasets</div>
+    </div>
+    <div class="node" style="left:630px; top:352px; width:300px; height:112px;">
+        <div class="title code">findUserByToken</div>
+        <div class="sub">sha256 the token, then select from sessions join users</div>
+    </div>
+    <div class="node" style="left:970px; top:352px; width:170px; height:112px;">
+        <div class="title">401 Not signed in</div>
+        <div class="sub">no user row for the token</div>
+    </div>
+
+    <div class="zone" style="left:30px; top:560px; width:1140px; height:200px;"></div>
+    <div class="zone-label" style="left:46px; top:548px;"><span class="tag">startup</span><span class="sub">before the pool serves a query</span></div>
+    <div class="lane" style="left:60px; top:586px;">the runner takes an advisory lock, so a second instance waits instead of migrating twice</div>
+
+    <div class="node" style="left:60px; top:616px; width:210px; height:112px;">
+        <div class="title code">serve.ts</div>
+        <div class="sub">awaits the runner before listen</div>
+    </div>
+    <div class="node" style="left:310px; top:616px; width:220px; height:112px;">
+        <div class="title code">runMigrations()</div>
+        <div class="sub">AUTO_MIGRATE=false skips it</div>
+    </div>
+    <div class="node" style="left:570px; top:616px; width:280px; height:112px;">
+        <div class="title code">pg_advisory_lock</div>
+        <div class="sub">LOCK_ID 7245091331000001</div>
+    </div>
+    <div class="node" style="left:890px; top:616px; width:250px; height:112px;">
+        <div class="title code">node-pg-migrate</div>
+        <div class="sub">applies pending migrations</div>
+    </div>
+</div>
+</body>
+</html>
