@@ -1,21 +1,6 @@
 # dsa-finals-psu
 
-Unsorted data in, sorted data out, with every compare and swap shown. The table is the build order: each row needs the rows above it.
-
-## Roadmap
-
-| #   | Features                | Side | Step                                             |
-| --- | ----------------------- | ---- | ------------------------------------------------ |
-| 1   | Database schema         | B    | users, sessions, runs, datasets                  |
-| 2   | Auth                    | B, F | login, register, logout                          |
-| 3   | Landing Page            | F    | a beautiful landing with demo                    |
-| 4   | Algorithm Functions     | B    | Various DSA concept applied (API Functions only) |
-| 5   | Main App                | B, F | Execute unsorted datasets to sorted              |
-| 6   | History page            | B, F | a person’s recorded runs                         |
-| 7   | Polish Landing and Main | F    | A polished version containing animations         |
-| 8   | Docs                    | -    | optional update docs                             |
-| 9   | Input limits            | B    | security - prevent malicious payloads            |
-| 10  | Rate limit              | B    | security - prevents abuse                        |
+Unsorted data in, sorted data out, with every compare and swap shown.
 
 ## Setup on Windows
 
@@ -55,7 +40,7 @@ npm ci
 npm run dev
 ```
 
-`backend/.env` holds `DATABASE_URL` and `.envrc` exports it into the shell. Without direnv, pass it inline: `DATABASE_URL=... npm run dev`.
+`DATABASE_URL` comes from compose and points at the `postgres` service. Running the backend outside compose means exporting one yourself: `DATABASE_URL=... npm run dev`.
 
 Frontend, in `frontend/`:
 
@@ -65,21 +50,6 @@ npm run dev
 ```
 
 `flake.nix` supplies Node 24 and `playwright-mcp` to `nix develop` and direnv, and `.envrc` exports `.env` and `backend/.env` into that shell.
-
-## Frontend layout
-
-`frontend/` is what a person sees and clicks. `backend/` owns algorithms, storage and limits.
-
-```
-frontend/src/
-  main.js                  route table, edit this to register a page
-  shared/api.js            the only place that calls /api
-  shared/router.js         link interception, 404 fallback, error frame
-  styles/base.css          reset and page frame, shared by every page
-  features/landing/        one folder per page
-```
-
-To add a page, copy `features/landing`, rename the folder, edit its `.html`, then point a path at it in `main.js`. A feature exports `mount(el)`, keeps its own `.css` beside the `.js`, and imports markup with `import html from "./page.html?raw"`. That file is a fragment, so opening it in a browser directly shows it unstyled, which is expected.
 
 ## Docker and Makefile
 

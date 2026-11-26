@@ -1,1 +1,0 @@
-export { records as recordsRouter } from './features/records/handlers.js';
