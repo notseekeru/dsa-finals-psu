@@ -35,8 +35,7 @@ export async function mountRecordsWorkspace(container) {
         sortDir: "asc",
         searchMode: "linear",
         searchQuery: "",
-        categoryFilter: "ALL",
-        statusFilter: "ALL",
+        filters: {},
         activeNav: "home",
         viewMode: "table",
         metrics: { comparisons: 0, shifts: 0 },
@@ -56,8 +55,7 @@ export async function mountRecordsWorkspace(container) {
         filterToggleBtn: q("#dsaFilterToggleBtn"),
         filterDrawer: q("#dsaFilterDrawer"),
         searchMode: q("#dsaSearchMode"),
-        categoryFilter: q("#dsaCategoryFilter"),
-        statusFilter: q("#dsaStatusFilter"),
+        filterFields: q("#dsaFilterFields"),
         sortDir: q("#dsaSortDir"),
         runSortBtn: q("#dsaRunSortBtn"),
         resetFiltersBtn: q("#dsaResetFiltersBtn"),
@@ -160,10 +158,12 @@ export async function mountRecordsWorkspace(container) {
 
     async function applyDatasetScope() {
         state.matches = null;
+        state.filters = {};
         const knownColumns = tableColumns(visibleColumnNames()).map((column) => column.key);
         if (!knownColumns.includes(state.sortField)) state.sortField = knownColumns[0] ?? "name";
         renderDatasetList();
         await client.listRecords(state.datasetId);
+        renderFilterFields();
         await applySort();
         await refreshDashboard();
     }
@@ -405,20 +405,6 @@ export async function mountRecordsWorkspace(container) {
         const currentGroupList = group === "categories" ? categories : statuses;
         const prevExisting = els.dropdownExistingSelect?.value;
 
-        populateSelectOptions(els.categoryFilter, categories, {
-            includeAll: true,
-            allLabel: "All Categories",
-            selectedValue: state.categoryFilter,
-        });
-        state.categoryFilter = els.categoryFilter?.value || "ALL";
-
-        populateSelectOptions(els.statusFilter, statuses, {
-            includeAll: true,
-            allLabel: "All Statuses",
-            selectedValue: state.statusFilter,
-        });
-        state.statusFilter = els.statusFilter?.value || "ALL";
-
         if (els.dropdownTarget) {
             els.dropdownTarget.value = group;
         }
@@ -446,11 +432,9 @@ export async function mountRecordsWorkspace(container) {
             }
         }
 
-        if (group === "categories" && deletedValue && state.categoryFilter === deletedValue) {
-            state.categoryFilter = "ALL";
-        }
-        if (group === "statuses" && deletedValue && state.statusFilter === deletedValue) {
-            state.statusFilter = "ALL";
+        if (deletedValue) {
+            const column = group === "categories" ? "category" : "status";
+            if (state.filters[column] === deletedValue) delete state.filters[column];
         }
         if (group === "categories" && deletedValue && state.activeNav === deletedValue) {
             state.activeNav = "home";
@@ -474,11 +458,50 @@ export async function mountRecordsWorkspace(container) {
         };
     }
 
+    function cellValue(item, column) {
+        const core = CORE_COLUMNS.find((entry) => entry.key.toLowerCase() === column.toLowerCase());
+        if (core) return item[core.key] ?? "";
+        return item.data?.[column] ?? "";
+    }
+
+    function filterColumns() {
+        const items = client.getItems();
+        return visibleColumnNames()
+            .filter(Boolean)
+            .map((column) => {
+                const values = [...new Set(items.map((item) => String(cellValue(item, column)).trim()).filter(Boolean))];
+                const type = inferType(items.map((item) => cellValue(item, column)));
+                return { column, values, type };
+            })
+            .filter((entry) => entry.type === "text" && entry.values.length >= 2 && entry.values.length <= 12 && entry.values.length < items.length)
+            .slice(0, 4);
+    }
+
+    function renderFilterFields() {
+        if (!els.filterFields) return;
+        const entries = filterColumns();
+        if (entries.length === 0) {
+            els.filterFields.innerHTML = "";
+            return;
+        }
+        els.filterFields.innerHTML = entries
+            .map(({ column, values }) => {
+                const label = CORE_COLUMNS.find((entry) => entry.key.toLowerCase() === column.toLowerCase())?.label ?? column;
+                const selected = state.filters[column] ?? "ALL";
+                const options = ["ALL", ...values].map((value) => `<option value="${escapeHtml(value)}"${value === selected ? " selected" : ""}>${escapeHtml(value === "ALL" ? "All" : value)}</option>`).join("");
+                return `<label class="dsa-field"><span>${escapeHtml(label)}</span><select data-filter="${escapeHtml(column)}">${options}</select></label>`;
+            })
+            .join("");
+    }
+
     function matchesFilters(item) {
-        const navCategory = state.dropdownOptions.categories.includes(state.activeNav) ? state.activeNav : state.categoryFilter;
+        const navCategory = state.dropdownOptions.categories.includes(state.activeNav) ? state.activeNav : null;
         if (Boolean(item.archived) !== (state.activeNav === "archived")) return false;
-        if (navCategory !== "ALL" && item.category !== navCategory) return false;
-        if (state.statusFilter !== "ALL" && item.status !== state.statusFilter) return false;
+        if (navCategory && item.category !== navCategory) return false;
+        for (const [column, value] of Object.entries(state.filters)) {
+            if (!value || value === "ALL") continue;
+            if (String(cellValue(item, column)).trim().toLowerCase() !== String(value).trim().toLowerCase()) return false;
+        }
         return true;
     }
 
@@ -741,13 +764,11 @@ export async function mountRecordsWorkspace(container) {
         runSearch();
     });
 
-    els.categoryFilter.addEventListener("change", (e) => {
-        state.categoryFilter = e.target.value;
-        render();
-    });
-
-    els.statusFilter.addEventListener("change", (e) => {
-        state.statusFilter = e.target.value;
+    els.filterFields.addEventListener("change", (e) => {
+        const column = e.target.dataset.filter;
+        if (!column) return;
+        if (e.target.value === "ALL") delete state.filters[column];
+        else state.filters[column] = e.target.value;
         render();
     });
 
@@ -766,14 +787,12 @@ export async function mountRecordsWorkspace(container) {
         handleAction(async () => {
             state.searchQuery = "";
             state.searchMode = "linear";
-            state.categoryFilter = "ALL";
-            state.statusFilter = "ALL";
+            state.filters = {};
             state.sortField = "name";
             state.sortDir = "asc";
             els.searchInput.value = "";
             els.searchMode.value = "linear";
-            els.categoryFilter.value = "ALL";
-            els.statusFilter.value = "ALL";
+            renderFilterFields();
             els.sortDir.value = "asc";
             await applySort();
         }),
@@ -816,9 +835,9 @@ export async function mountRecordsWorkspace(container) {
                 }
             }
 
-            if (group === "categories" && state.categoryFilter === oldVal) state.categoryFilter = newVal;
+            if (group === "categories" && state.filters.category === oldVal) state.filters.category = newVal;
             if (group === "categories" && state.activeNav === oldVal) state.activeNav = "home";
-            if (group === "statuses" && state.statusFilter === oldVal) state.statusFilter = newVal;
+            if (group === "statuses" && state.filters.status === oldVal) state.filters.status = newVal;
             if (els.dropdownInput) els.dropdownInput.value = "";
             syncDropdownUIs(`Renamed "${oldVal}" to "${newVal}".`);
             if (els.dropdownExistingSelect) els.dropdownExistingSelect.value = newVal;

@@ -123,6 +123,10 @@
     z-index: 30;
 }
 
+.dsa-filter-fields {
+    display: contents;
+}
+
 .dsa-filter-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
