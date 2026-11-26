@@ -870,12 +870,13 @@
 
 .dsa-chart-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 1rem;
 }
 
 .dsa-chart-panel {
     display: flex;
+    grid-column: span 6;
     flex-direction: column;
     gap: 0.6rem;
     min-width: 0;
@@ -884,6 +885,10 @@
     border: var(--border-width) solid var(--border);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-card);
+}
+
+.dsa-chart-panel.dsa-span-wide {
+    grid-column: span 12;
 }
 
 .dsa-panel-title {
@@ -1017,6 +1022,10 @@
 
     .dsa-chart-grid {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dsa-chart-panel {
+        grid-column: span 1;
     }
 
     .dsa-chart-canvas {

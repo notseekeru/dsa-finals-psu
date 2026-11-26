@@ -81,6 +81,7 @@ export async function mountRecordsWorkspace(container) {
         suggestedRow: q("#dsaSuggestedRow"),
         toggleRecordsBtn: q("#dsaToggleRecordsBtn"),
         recordCountLabel: q("#dsaRecordCountLabel"),
+        recordsHeading: q("#dsaRecordsHeading"),
         recordsContainer: q("#dsaRecordsContainer"),
         modal: q("#dsaRecordModal"),
         recordForm: q("#dsaRecordForm"),
@@ -115,6 +116,7 @@ export async function mountRecordsWorkspace(container) {
             datasetId: state.datasetId,
             onSelectDataset: (id) => selectDataset(id),
             getStats: (id) => client.stats(id),
+            getRecords: () => client.getItems(),
         });
 
     const selectedDataset = () => state.datasets.find((dataset) => dataset.id === state.datasetId) ?? null;
@@ -163,8 +165,8 @@ export async function mountRecordsWorkspace(container) {
 
     async function applyDatasetScope() {
         state.matches = null;
-        const knownColumns = tableColumns(selectedDataset()?.columns ?? []).map((column) => column.key);
-        if (!knownColumns.includes(state.sortField)) state.sortField = "name";
+        const knownColumns = tableColumns(visibleColumnNames()).map((column) => column.key);
+        if (!knownColumns.includes(state.sortField)) state.sortField = knownColumns[0] ?? "name";
         renderDatasetList();
         await client.listRecords(state.datasetId);
         await applySort();
@@ -221,6 +223,14 @@ export async function mountRecordsWorkspace(container) {
         } else if (values.length > 0) {
             selectEl.value = includeAll ? "ALL" : values[0];
         }
+    }
+
+    function visibleColumnNames() {
+        const selected = selectedDataset();
+        if (selected) return selected.columns ?? [];
+        const names = [];
+        for (const dataset of state.datasets) for (const name of dataset.columns ?? []) names.push(name);
+        return [...new Set(names)];
     }
 
     function renderSidebarNav() {
@@ -547,6 +557,8 @@ export async function mountRecordsWorkspace(container) {
         const visible = visibleRecords();
 
         els.workspaceTitle.textContent = state.activeNav === "home" ? "DataSpace" : `DataSpace: ${state.activeNav}`;
+        els.recordsHeading.textContent = selectedDataset()?.name ?? "All records";
+        els.recordsHeading.textContent = selectedDataset()?.name ?? "All records";
         els.recordCountLabel.textContent = `${visible.length} ${visible.length === 1 ? "record" : "records"}`;
         els.statusBar.textContent = state.statusText;
 
@@ -581,7 +593,7 @@ export async function mountRecordsWorkspace(container) {
 
         if (state.viewMode === "table") {
             els.recordsContainer.innerHTML = recordsTableHtml(visible, {
-                columns: tableColumns(selectedDataset()?.columns ?? []),
+                columns: tableColumns(visibleColumnNames()),
                 sortField: state.sortField,
                 sortDir: state.sortDir,
                 notice: state.datasetId === null ? "Extra fields are shown once a file is selected." : "",

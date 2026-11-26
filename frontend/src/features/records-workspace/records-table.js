@@ -9,10 +9,22 @@ export const CORE_COLUMNS = [
     { key: "date", label: "Date" },
 ];
 
-export function tableColumns(extraNames = []) {
-    const coreKeys = new Set(CORE_COLUMNS.map((column) => column.key));
-    const extras = extraNames.filter((name) => !coreKeys.has(name)).map((name) => ({ key: name, label: name, extra: true }));
-    return [...CORE_COLUMNS, ...extras];
+export function tableColumns(names = []) {
+    const coreByKey = new Map(CORE_COLUMNS.map((column) => [column.key.toLowerCase(), column]));
+    const seen = new Set();
+    const core = [];
+    const extras = [];
+    for (const name of names) {
+        const label = String(name ?? "").trim();
+        if (!label || seen.has(label.toLowerCase())) continue;
+        seen.add(label.toLowerCase());
+        const match = coreByKey.get(label.toLowerCase());
+        if (match) core.push({ ...match });
+        else extras.push({ key: label, label, extra: true });
+    }
+    if (core.length === 0 && extras.length === 0) return CORE_COLUMNS.map((column) => ({ ...column }));
+    const ordered = CORE_COLUMNS.filter((column) => core.some((c) => c.key === column.key));
+    return [...ordered, ...extras];
 }
 
 function peso(value) {

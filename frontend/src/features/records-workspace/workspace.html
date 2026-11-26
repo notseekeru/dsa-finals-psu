@@ -194,36 +194,28 @@
         </div>
 
         <div class="dsa-chart-grid">
-          <article class="dsa-chart-panel">
-            <h3 class="dsa-panel-title">Records by category</h3>
+          <article class="dsa-chart-panel dsa-span-wide">
+            <h3 id="dsaTimeTitle" class="dsa-panel-title">Records over time</h3>
             <div class="dsa-chart-canvas">
-              <canvas id="dsaCategoryChart" role="img" aria-label="Records by category"></canvas>
+              <canvas id="dsaTimeChart" role="img" aria-label="Records over time"></canvas>
             </div>
-            <p id="dsaCategoryChartEmpty" class="dsa-panel-empty" hidden></p>
+            <p id="dsaTimeChartEmpty" class="dsa-panel-empty" hidden></p>
           </article>
 
           <article class="dsa-chart-panel">
-            <h3 class="dsa-panel-title">Records over 12 months</h3>
+            <h3 id="dsaGroupTitle" class="dsa-panel-title">Records by group</h3>
             <div class="dsa-chart-canvas">
-              <canvas id="dsaMonthlyChart" role="img" aria-label="Records over the last 12 months"></canvas>
+              <canvas id="dsaGroupChart" role="img" aria-label="Records by group"></canvas>
             </div>
-            <p id="dsaMonthlyChartEmpty" class="dsa-panel-empty" hidden></p>
+            <p id="dsaGroupChartEmpty" class="dsa-panel-empty" hidden></p>
           </article>
 
           <article class="dsa-chart-panel">
-            <h3 class="dsa-panel-title">Status split</h3>
+            <h3 id="dsaMeasureTitle" class="dsa-panel-title">Totals</h3>
             <div class="dsa-chart-canvas">
-              <canvas id="dsaStatusChart" role="img" aria-label="Records by status"></canvas>
+              <canvas id="dsaMeasureChart" role="img" aria-label="Totals by group"></canvas>
             </div>
-            <p id="dsaStatusChartEmpty" class="dsa-panel-empty" hidden></p>
-          </article>
-
-          <article class="dsa-chart-panel">
-            <h3 class="dsa-panel-title">Rows per file</h3>
-            <div class="dsa-chart-canvas">
-              <canvas id="dsaDatasetChart" role="img" aria-label="Rows per file"></canvas>
-            </div>
-            <p id="dsaDatasetChartEmpty" class="dsa-panel-empty" hidden></p>
+            <p id="dsaMeasureChartEmpty" class="dsa-panel-empty" hidden></p>
           </article>
 
           <article class="dsa-chart-panel dsa-activity-panel">
