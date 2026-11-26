@@ -1,5 +1,4 @@
 import Chart from "chart.js/auto";
-import { escapeHtml } from "./escape.js";
 
 const PALETTE = ["--secondary", "--accent-dark", "--primary", "--accent", "--muted"];
 const EMPTY_MESSAGE = "No records yet. Add or import a record to see the dashboard.";
@@ -26,7 +25,6 @@ function emptyStats() {
     return {
         totals: { records: 0, active: 0, archived: 0, categories: 0, amount: 0 },
         byDataset: [],
-        recent: [],
     };
 }
 
@@ -219,17 +217,6 @@ function doughnutChart(canvas, labels, values) {
     );
 }
 
-function activityRow(row) {
-    return `<tr>
-        <td class="dsa-table-id">${escapeHtml(row.recordId)}</td>
-        <td>${escapeHtml(row.name)}</td>
-        <td>${escapeHtml(row.category)}</td>
-        <td><span class="dsa-status-pill">${escapeHtml(row.status)}</span></td>
-        <td class="dsa-table-amount">${peso(row.amount)}</td>
-        <td><time datetime="${escapeHtml(row.date)}">${escapeHtml(row.date)}</time></td>
-    </tr>`;
-}
-
 export async function renderDashboard(root, { datasetId = null, getStats, getRecords = () => [] } = {}) {
     if (!root) return;
     const mine = ++renderToken;
@@ -305,16 +292,5 @@ export async function renderDashboard(root, { datasetId = null, getStats, getRec
             measure.key,
             moneyAxis(),
         );
-    }
-
-    const recent = (stats.recent ?? []).slice(0, 5);
-    const activityTable = root.querySelector("#dsaActivityTable");
-    const activityEmpty = root.querySelector("#dsaActivityEmpty");
-    if (activityTable) {
-        activityTable.innerHTML = `<caption class="sr-only">Latest activity</caption><thead><tr><th scope="col">Record</th><th scope="col">Name</th><th scope="col">Category</th><th scope="col">Status</th><th scope="col">Amount</th><th scope="col">Date</th></tr></thead><tbody>${recent.map(activityRow).join("")}</tbody>`;
-    }
-    if (activityEmpty) {
-        activityEmpty.hidden = recent.length > 0;
-        activityEmpty.textContent = hasData ? "Nothing imported yet." : message;
     }
 }

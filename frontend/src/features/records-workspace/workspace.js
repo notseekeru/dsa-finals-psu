@@ -1,6 +1,5 @@
 import { detectMapping, mapRows, parseCsv } from "./csv-importer.js";
 import { renderDashboard } from "./dashboard.js";
-import { deleteOption, renameOption } from "./dropdown-options.js";
 import { escapeHtml } from "./escape.js";
 import { createRecordsClient } from "./records-api.js";
 import { CORE_COLUMNS, recordsTableHtml, sortRequestFromEvent, tableColumns } from "./records-table.js";
@@ -9,21 +8,6 @@ import "./workspace.css";
 const SEARCH_DEBOUNCE_MS = 250;
 const MAPPING_FIELDS = ["name", "amount", "date", "category", "status", "recordId"];
 const MAX_PROBLEMS = 20;
-
-function pluralizeCategoryLabel(category) {
-    const clean = String(category ?? "").trim();
-    if (!clean) return "";
-    const lower = clean.toLowerCase();
-
-    if (lower === "inventory") return "Inventory";
-    if (lower === "customer") return "Customers";
-    if (lower === "order") return "Orders";
-    if (lower === "appointment") return "Appointments";
-
-    if (/(?:s|x|z|ch|sh)$/i.test(clean)) return `${clean}es`;
-    if (/[^aeiou]y$/i.test(clean)) return `${clean.slice(0, -1)}ies`;
-    return `${clean}s`;
-}
 
 export async function mountRecordsWorkspace(container) {
     const client = await createRecordsClient();
@@ -42,7 +26,6 @@ export async function mountRecordsWorkspace(container) {
         matches: null,
         statusText: "Ready.",
         dropdownOptions: { categories: [], statuses: [] },
-        activeDropdownGroup: "categories",
         csvDraft: null,
         csvImporting: false,
     };
@@ -57,14 +40,6 @@ export async function mountRecordsWorkspace(container) {
         searchMode: q("#dsaSearchMode"),
         filterFields: q("#dsaFilterFields"),
         sortDir: q("#dsaSortDir"),
-        runSortBtn: q("#dsaRunSortBtn"),
-        resetFiltersBtn: q("#dsaResetFiltersBtn"),
-        dropdownTarget: q("#dsaDropdownTarget"),
-        dropdownExistingSelect: q("#dsaDropdownExistingSelect"),
-        dropdownInput: q("#dsaDropdownInput"),
-        renameOptionBtn: q("#dsaRenameOptionBtn"),
-        deleteOptionBtn: q("#dsaDeleteOptionBtn"),
-        dropdownMsg: q("#dsaDropdownMsg"),
         newRecordBtn: q("#dsaNewRecordBtn"),
         navList: q(".dsa-nav-list"),
         navButtons: [...container.querySelectorAll(".dsa-nav-item")],
@@ -201,25 +176,6 @@ export async function mountRecordsWorkspace(container) {
         render();
     }
 
-    function populateSelectOptions(selectEl, values, { includeAll = false, allLabel = "All", selectedValue = "" } = {}) {
-        if (!selectEl) return;
-        const optionsHtml = [];
-        if (includeAll) {
-            optionsHtml.push(`<option value="ALL">${escapeHtml(allLabel)}</option>`);
-        }
-        for (const val of values) {
-            optionsHtml.push(`<option value="${escapeHtml(val)}">${escapeHtml(val)}</option>`);
-        }
-        selectEl.innerHTML = optionsHtml.join("");
-
-        const validValues = includeAll ? ["ALL", ...values] : values;
-        if (selectedValue && validValues.includes(selectedValue)) {
-            selectEl.value = selectedValue;
-        } else if (values.length > 0) {
-            selectEl.value = includeAll ? "ALL" : values[0];
-        }
-    }
-
     function visibleColumnNames() {
         const selected = selectedDataset();
         if (selected) return selected.columns ?? [];
@@ -230,39 +186,16 @@ export async function mountRecordsWorkspace(container) {
 
     function renderSidebarNav() {
         if (!els.navList) return;
-
-        const categories = state.dropdownOptions.categories || [];
-        const isCategoryNav = categories.includes(state.activeNav);
-        const isSpecialNav = state.activeNav === "home" || state.activeNav === "archived";
-
-        if (!isCategoryNav && !isSpecialNav) {
-            state.activeNav = "home";
-        }
-
-        const categoryButtonsHtml = categories
-            .map((cat) => {
-                const label = pluralizeCategoryLabel(cat);
-                const activeClass = state.activeNav === cat ? " is-active" : "";
-                return `<button class="dsa-nav-item${activeClass}" type="button" data-nav="${escapeHtml(cat)}">${escapeHtml(label)}</button>`;
-            })
-            .join("");
-
-        els.navList.innerHTML = `
-      <button class="dsa-nav-item${state.activeNav === "home" ? " is-active" : ""}" type="button" data-nav="home">Home</button>
-      ${categoryButtonsHtml}
-      <button class="dsa-nav-item${state.activeNav === "archived" ? " is-active" : ""}" type="button" data-nav="archived">Archived</button>
-    `;
-
+        const archived = state.activeNav === "archived";
+        els.navList.innerHTML = `<button class="dsa-nav-item${archived ? " is-active" : ""}" type="button" data-nav="archived" aria-pressed="${archived}">Archived</button>`;
         els.navButtons = [...els.navList.querySelectorAll(".dsa-nav-item")];
-        els.navButtons.forEach((btn) => {
-            btn.addEventListener("click", () => {
-                state.activeNav = btn.dataset.nav;
-                els.navButtons.forEach((b) => {
-                    b.classList.toggle("is-active", b === btn);
-                });
+        for (const button of els.navButtons) {
+            button.addEventListener("click", () => {
+                state.activeNav = archived ? "home" : "archived";
+                renderSidebarNav();
                 render();
             });
-        });
+        }
     }
 
     function renderCsvPreviewTable(headers, rows) {
@@ -398,51 +331,10 @@ export async function mountRecordsWorkspace(container) {
         return { categories: uniq("category", "General"), statuses: uniq("status", "Active") };
     }
 
-    function syncDropdownUIs(message = "") {
+    function syncOptionLists() {
         state.dropdownOptions = optionLists();
-        const { categories, statuses } = state.dropdownOptions;
-        const group = state.activeDropdownGroup;
-        const currentGroupList = group === "categories" ? categories : statuses;
-        const prevExisting = els.dropdownExistingSelect?.value;
-
-        if (els.dropdownTarget) {
-            els.dropdownTarget.value = group;
-        }
-        populateSelectOptions(els.dropdownExistingSelect, currentGroupList, {
-            selectedValue: prevExisting,
-        });
-
-        if (els.dropdownMsg) {
-            els.dropdownMsg.textContent = message;
-        }
-
         renderSidebarNav();
-    }
-
-    async function applyDropdownMutation(nextList, deletedValue = "") {
-        const group = state.activeDropdownGroup;
-        const fallbackVal = nextList[0] || "";
-        const items = client.getItems();
-
-        for (const item of items) {
-            if (group === "categories" && deletedValue && item.category === deletedValue) {
-                await client.saveItem({ ...item, category: fallbackVal }, true);
-            } else if (group === "statuses" && deletedValue && item.status === deletedValue) {
-                await client.saveItem({ ...item, status: fallbackVal }, true);
-            }
-        }
-
-        if (deletedValue) {
-            const column = group === "categories" ? "category" : "status";
-            if (state.filters[column] === deletedValue) delete state.filters[column];
-        }
-        if (group === "categories" && deletedValue && state.activeNav === deletedValue) {
-            state.activeNav = "home";
-        }
-
-        syncDropdownUIs();
-        render();
-        await refreshDashboard();
+        renderFilterFields();
     }
 
     function sortStatusText() {
@@ -469,17 +361,29 @@ export async function mountRecordsWorkspace(container) {
         return visibleColumnNames()
             .filter(Boolean)
             .map((column) => {
-                const values = [...new Set(items.map((item) => String(cellValue(item, column)).trim()).filter(Boolean))];
-                const type = inferType(items.map((item) => cellValue(item, column)));
-                return { column, values, type };
+                const filled = items.map((item) => String(cellValue(item, column)).trim()).filter(Boolean);
+                const values = [...new Set(filled)];
+                const type = inferType(filled);
+                return { column, values, filled: filled.length, type };
             })
-            .filter((entry) => entry.type === "text" && entry.values.length >= 2 && entry.values.length <= 12 && entry.values.length < items.length)
+            .filter((entry) => entry.type === "text" && entry.values.length >= 2 && entry.values.length <= 12 && entry.values.length < entry.filled)
             .slice(0, 4);
     }
+
+    let filterSignature = "";
 
     function renderFilterFields() {
         if (!els.filterFields) return;
         const entries = filterColumns();
+        const signature = entries.map((entry) => `${entry.column}:${entry.values.join("|")}`).join(";");
+        if (signature === filterSignature && els.filterFields.childElementCount > 0) {
+            for (const select of els.filterFields.querySelectorAll("[data-filter]")) {
+                const wanted = state.filters[select.dataset.filter] ?? "ALL";
+                if (select.value !== wanted) select.value = wanted;
+            }
+            return;
+        }
+        filterSignature = signature;
         if (entries.length === 0) {
             els.filterFields.innerHTML = "";
             return;
@@ -495,9 +399,7 @@ export async function mountRecordsWorkspace(container) {
     }
 
     function matchesFilters(item) {
-        const navCategory = state.dropdownOptions.categories.includes(state.activeNav) ? state.activeNav : null;
         if (Boolean(item.archived) !== (state.activeNav === "archived")) return false;
-        if (navCategory && item.category !== navCategory) return false;
         for (const [column, value] of Object.entries(state.filters)) {
             if (!value || value === "ALL") continue;
             if (String(cellValue(item, column)).trim().toLowerCase() !== String(value).trim().toLowerCase()) return false;
@@ -563,6 +465,7 @@ export async function mountRecordsWorkspace(container) {
     }
 
     function render() {
+        renderFilterFields();
         const all = client.getItems();
         const visible = visibleRecords();
 
@@ -710,7 +613,7 @@ export async function mountRecordsWorkspace(container) {
     }
 
     function openModal(record = null) {
-        syncDropdownUIs(els.dropdownMsg?.textContent || "");
+        syncOptionLists();
         resetCsvImporter();
 
         if (record) {
@@ -722,7 +625,7 @@ export async function mountRecordsWorkspace(container) {
             els.modalTitle.textContent = "Add Record";
             if (els.csvSection) els.csvSection.hidden = false;
             els.recordForm.reset();
-            syncDropdownUIs(els.dropdownMsg?.textContent || "");
+            syncOptionLists();
             els.internalId.value = "";
             renderRecordFields();
         }
@@ -777,88 +680,6 @@ export async function mountRecordsWorkspace(container) {
         handleAction(async (e) => {
             state.sortDir = e.target.value;
             await applySort();
-        }),
-    );
-
-    els.runSortBtn.addEventListener("click", handleAction(applySort));
-
-    els.resetFiltersBtn.addEventListener(
-        "click",
-        handleAction(async () => {
-            state.searchQuery = "";
-            state.searchMode = "linear";
-            state.filters = {};
-            state.sortField = "name";
-            state.sortDir = "asc";
-            els.searchInput.value = "";
-            els.searchMode.value = "linear";
-            renderFilterFields();
-            els.sortDir.value = "asc";
-            await applySort();
-        }),
-    );
-
-    els.dropdownTarget?.addEventListener("change", (e) => {
-        state.activeDropdownGroup = e.target.value === "statuses" ? "statuses" : "categories";
-        if (els.dropdownInput) els.dropdownInput.value = "";
-        syncDropdownUIs("");
-    });
-
-    els.dropdownExistingSelect?.addEventListener("change", (e) => {
-        if (els.dropdownInput) els.dropdownInput.value = e.target.value;
-    });
-
-    els.renameOptionBtn?.addEventListener(
-        "click",
-        handleAction(async () => {
-            const group = state.activeDropdownGroup;
-            const oldVal = els.dropdownExistingSelect?.value || "";
-            const newVal = els.dropdownInput?.value.trim() || "";
-            const currentList = state.dropdownOptions[group];
-            const idx = currentList.indexOf(oldVal);
-
-            const { list, error } = renameOption(currentList, oldVal, newVal);
-            if (error) {
-                syncDropdownUIs(error);
-                return;
-            }
-
-            const renamedList = [...list];
-            if (idx !== -1) renamedList[idx] = newVal;
-
-            const items = client.getItems();
-            for (const item of items) {
-                if (group === "categories" && item.category === oldVal) {
-                    await client.saveItem({ ...item, category: newVal }, true);
-                } else if (group === "statuses" && item.status === oldVal) {
-                    await client.saveItem({ ...item, status: newVal }, true);
-                }
-            }
-
-            if (group === "categories" && state.filters.category === oldVal) state.filters.category = newVal;
-            if (group === "categories" && state.activeNav === oldVal) state.activeNav = "home";
-            if (group === "statuses" && state.filters.status === oldVal) state.filters.status = newVal;
-            if (els.dropdownInput) els.dropdownInput.value = "";
-            syncDropdownUIs(`Renamed "${oldVal}" to "${newVal}".`);
-            if (els.dropdownExistingSelect) els.dropdownExistingSelect.value = newVal;
-            render();
-            await refreshDashboard();
-        }),
-    );
-
-    els.deleteOptionBtn?.addEventListener(
-        "click",
-        handleAction(async () => {
-            const group = state.activeDropdownGroup;
-            const targetVal = els.dropdownExistingSelect?.value || "";
-            const { list, error } = deleteOption(state.dropdownOptions[group], targetVal);
-            if (error) {
-                syncDropdownUIs(error);
-                return;
-            }
-            if (els.dropdownInput) els.dropdownInput.value = "";
-            await applyDropdownMutation(list, targetVal);
-            syncDropdownUIs(`Deleted "${targetVal}".`);
         }),
     );
 
@@ -1047,7 +868,7 @@ export async function mountRecordsWorkspace(container) {
         }),
     );
 
-    syncDropdownUIs("");
+    syncOptionLists();
     await loadDatasets();
     await applySort();
     await refreshDashboard();

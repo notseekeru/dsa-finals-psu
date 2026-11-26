@@ -50,45 +50,6 @@
             </select>
           </label>
         </div>
-
-        <div class="dsa-dropdown-manager" id="dsaDropdownManager">
-          <div class="dsa-dropdown-mgr-top">
-            <span class="dsa-dropdown-mgr-title">Customize Dropdown Options</span>
-            <label class="dsa-field dsa-inline-field">
-              <span>Dropdown</span>
-              <select id="dsaDropdownTarget">
-                <option value="categories">Category</option>
-                <option value="statuses">Status</option>
-              </select>
-            </label>
-            <label class="dsa-field dsa-inline-field">
-              <span>Existing Option</span>
-              <select id="dsaDropdownExistingSelect"></select>
-            </label>
-          </div>
-
-          <div class="dsa-dropdown-mgr-controls">
-            <input
-              type="text"
-              id="dsaDropdownInput"
-              class="dsa-dropdown-input"
-              placeholder="Rename option to..."
-            />
-            <button type="button" class="dsa-btn dsa-btn-ghost" id="dsaRenameOptionBtn">Rename</button>
-            <button type="button" class="dsa-btn dsa-btn-ghost dsa-danger-btn" id="dsaDeleteOptionBtn">Delete</button>
-          </div>
-
-          <div class="dsa-dropdown-mgr-msg" id="dsaDropdownMsg" role="status" aria-live="polite"></div>
-        </div>
-
-        <div class="dsa-filter-actions">
-          <button id="dsaRunSortBtn" class="dsa-btn dsa-btn-primary" type="button">
-            Run Insertion Sort
-          </button>
-          <button id="dsaResetFiltersBtn" class="dsa-btn dsa-btn-ghost" type="button">
-            Reset Filters
-          </button>
-        </div>
       </div>
     </div>
 
@@ -102,10 +63,8 @@
         <span class="dsa-plus" aria-hidden="true">+</span>
         <span>New</span>
       </button>
-
       <nav class="dsa-nav-list">
-        <button class="dsa-nav-item is-active" type="button" data-nav="home">Home</button>
-        <button class="dsa-nav-item" type="button" data-nav="archived">Archived</button>
+        <button class="dsa-nav-item" type="button" data-nav="archived" aria-pressed="false">Archived</button>
       </nav>
 
       <section class="dsa-file-panel" aria-labelledby="dsaFilePanelTitle">
@@ -208,25 +167,6 @@
               <canvas id="dsaMeasureChart" role="img" aria-label="Totals by group"></canvas>
             </div>
             <p id="dsaMeasureChartEmpty" class="dsa-panel-empty" hidden></p>
-          </article>
-
-          <article class="dsa-chart-panel dsa-activity-panel">
-            <h3 class="dsa-panel-title">Latest activity</h3>
-            <table id="dsaActivityTable" class="dsa-table">
-              <caption class="sr-only">Five most recent records</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Record</th>
-                  <th scope="col">Name</th>
-                  <th scope="col">Category</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Amount</th>
-                  <th scope="col">Date</th>
-                </tr>
-              </thead>
-              <tbody id="dsaActivityBody"></tbody>
-            </table>
-            <p id="dsaActivityEmpty" class="dsa-panel-empty" hidden></p>
           </article>
         </div>
       </section>
