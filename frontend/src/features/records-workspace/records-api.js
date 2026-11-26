@@ -1,48 +1,41 @@
-async function readResponse(response) {
-  const data = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(data?.error || `API request failed (${response.status})`);
-  }
-  return data;
-}
+import { deleteJson, getJson, postJson, putJson } from "../../shared/api.js";
 
 export async function createRecordsClient() {
-  const data = await readResponse(await fetch('/api/records', { headers: { Accept: 'application/json' } }));
-  if (!Array.isArray(data?.records)) {
-    throw new Error('The records API returned an invalid response');
-  }
-  let items = data.records;
+    const data = await getJson("/records");
+    if (!Array.isArray(data?.records)) {
+        throw new Error("The records API returned an invalid response");
+    }
+    let items = data.records;
 
-  return {
-    isConnected: () => true,
-    getItems: () => [...items],
-    setItems: (next) => {
-      items = [...next];
-    },
-    async saveItem(record, isEdit) {
-      if (isEdit) {
-        const data = await readResponse(await fetch(`/api/records/${encodeURIComponent(record.id)}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(record),
-        }));
-        items = items.map((item) => item.id === record.id ? data.record : item);
-      } else {
-        const data = await readResponse(await fetch('/api/records', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(record),
-        }));
-        items = [...items, data.record];
-      }
-      return [...items];
-    },
-    async deleteItem(id) {
-      await readResponse(await fetch(`/api/records/${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      }));
-      items = items.filter((item) => item.id !== id);
-      return [...items];
-    },
-  };
+    return {
+        isConnected: () => true,
+        getItems: () => [...items],
+        setItems: (next) => {
+            items = [...next];
+        },
+        async saveItem(record, isEdit) {
+            if (isEdit) {
+                const saved = await putJson(`/records/${encodeURIComponent(record.id)}`, record);
+                items = items.map((item) => (item.id === saved.record.id ? saved.record : item));
+            } else {
+                const saved = await postJson("/records", record);
+                items = [...items, saved.record];
+            }
+            return [...items];
+        },
+        async deleteItem(id) {
+            await deleteJson(`/records/${encodeURIComponent(id)}`);
+            items = items.filter((item) => item.id !== id);
+            return [...items];
+        },
+    };
+}
+
+export function sortRecords(field, direction) {
+    return postJson("/records/sort", { field, direction });
+}
+
+export function searchRecords({ mode, q, field, direction }) {
+    const params = new URLSearchParams({ mode, q, field, direction });
+    return getJson(`/records/search?${params}`);
 }

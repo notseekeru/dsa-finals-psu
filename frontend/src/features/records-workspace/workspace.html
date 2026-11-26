@@ -118,7 +118,6 @@
 
     <div class="dsa-topbar-actions">
       <span id="dsaSyncBadge" class="dsa-badge">Local List Mode</span>
-      <a href="/missing" class="dsa-link-subtle">404 route</a>
     </div>
   </header>
 
@@ -159,7 +158,7 @@
           </p>
         </div>
 
-        <div class="dsa-view-toggle" role="group" aria-label="View mode">
+        <div class="dsa-view-toggle">
           <button id="dsaListViewBtn" class="dsa-view-btn" type="button" aria-pressed="false">
             List
           </button>
@@ -210,7 +209,7 @@
     </main>
   </div>
 
-  <dialog id="dsaRecordModal" class="dsa-modal">
+  <dialog id="dsaRecordModal" class="dsa-modal" aria-labelledby="dsaModalTitle">
     <form id="dsaRecordForm" method="dialog" class="dsa-modal-card">
       <div class="dsa-modal-header">
         <h2 id="dsaModalTitle">Add Record</h2>
@@ -276,16 +275,15 @@
           />
         </div>
 
-        <div
+        <button
+          type="button"
           id="dsaCsvDropzone"
           class="dsa-csv-dropzone"
-          role="button"
-          tabindex="0"
           aria-label="Drag and drop a CSV file here or click to browse"
         >
-          <p class="dsa-csv-drop-text">Drag &amp; drop a <strong>.csv</strong> file here, or use <strong>Browse Files</strong></p>
-          <p class="dsa-csv-subtext" id="dsaCsvFileMeta">No CSV file selected yet.</p>
-        </div>
+          <span class="dsa-csv-drop-text">Drag &amp; drop a <strong>.csv</strong> file here, or use <strong>Browse Files</strong></span>
+          <span class="dsa-csv-subtext" id="dsaCsvFileMeta">No CSV file selected yet.</span>
+        </button>
 
         <div id="dsaCsvReviewBox" class="dsa-csv-review" hidden>
           <div class="dsa-csv-review-top">
