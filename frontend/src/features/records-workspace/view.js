@@ -1,4 +1,4 @@
-import { readSession } from "../../shared/session.js";
+import { readSession, signOut } from "../../shared/session.js";
 import workspaceHtml from "./workspace.html?raw";
 import { mountRecordsWorkspace } from "./workspace.js";
 
@@ -9,6 +9,7 @@ export const recordsWorkspaceView = {
             return;
         }
         target.innerHTML = workspaceHtml;
+        target.querySelector("#dsaSignOutBtn").addEventListener("click", () => void signOut());
         await mountRecordsWorkspace(target);
     },
 };
