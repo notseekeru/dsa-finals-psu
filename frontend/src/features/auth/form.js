@@ -3,7 +3,7 @@ import { readSession } from "../../shared/session.js";
 
 export async function mountForm(el, markup, { path, pending }) {
     if (await readSession()) {
-        location.replace("/");
+        location.replace("/records");
         return;
     }
 
@@ -23,7 +23,7 @@ export async function mountForm(el, markup, { path, pending }) {
 
         try {
             await postJson(path, Object.fromEntries(new FormData(form)));
-            location.assign("/");
+            location.assign("/records");
         } catch (error) {
             button.disabled = false;
             button.textContent = label;
